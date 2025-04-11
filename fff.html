@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBC - Fastest Finger First</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="fff-container">
+            <div class="fff-header">
+                <h1>Fastest Finger First</h1>
+                <p>The fastest correct responder will be selected to play the main game.</p>
+            </div>
+            
+            <div id="fff-admin-controls" class="admin-controls">
+                <h3>Admin Controls</h3>
+                <div class="control-buttons">
+                    <button class="control-btn" id="start-fff">
+                        <i class="fas fa-play"></i> Start Round
+                    </button>
+                    <button class="control-btn" id="generate-fff-qr">
+                        <i class="fas fa-qrcode"></i> Generate QR Code
+                    </button>
+                    <button class="control-btn" id="show-leaderboard">
+                        <i class="fas fa-list-ol"></i> Show Leaderboard
+                    </button>
+                    <button class="control-btn" id="reset-fff">
+                        <i class="fas fa-redo"></i> Reset Round
+                    </button>
+                </div>
+            </div>
+            
+            <div id="fff-question-container" style="display: none;">
+                <div class="timer" id="fff-timer" style="margin: 20px auto;">60</div>
+                
+                <div class="fff-question" id="fff-question">
+                    Loading question...
+                </div>
+                
+                <div class="fff-options" id="fff-options">
+                    <div class="fff-option" data-option="A">
+                        <div class="option-letter">A</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="fff-option" data-option="B">
+                        <div class="option-letter">B</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="fff-option" data-option="C">
+                        <div class="option-letter">C</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="fff-option" data-option="D">
+                        <div class="option-letter">D</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="qr-container" class="qr-container">
+                <h3>Scan QR Code to Participate</h3>
+                <div id="fff-qr-code" class="qr-code"></div>
+                <p>Scan this QR code with your mobile device to participate in the Fastest Finger First round.</p>
+            </div>
+            
+            <div id="leaderboard-container" class="leaderboard" style="display: none;">
+                <h3>Top 10 Fastest Correct Responses</h3>
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Name</th>
+                            <th>Time (seconds)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="theme-toggle" style="position: fixed; bottom: 20px; right: 20px;">
+        <label for="dark-mode-toggle-fff">Dark Mode</label>
+        <input type="checkbox" id="dark-mode-toggle-fff">
+    </div>
+    
+    <script src="js/fff.js"></script>
+</body>
+</html>

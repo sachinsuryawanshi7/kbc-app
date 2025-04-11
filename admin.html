@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBC - Admin Panel</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>KBC Admin Panel</h1>
+        
+        <div class="admin-container">
+            <div class="admin-main">
+                <div class="admin-controls">
+                    <h3>Game Controls</h3>
+                    <div class="control-buttons">
+                        <button class="control-btn" id="start-question">
+                            <i class="fas fa-play"></i> Start Question
+                        </button>
+                        <button class="control-btn" id="start-timer">
+                            <i class="fas fa-clock"></i> Start Timer
+                        </button>
+                        <button class="control-btn" id="stop-timer">
+                            <i class="fas fa-stop"></i> Stop Timer
+                        </button>
+                        <button class="control-btn" id="mark-correct">
+                            <i class="fas fa-check"></i> Mark Correct
+                        </button>
+                        <button class="control-btn" id="mark-incorrect">
+                            <i class="fas fa-times"></i> Mark Incorrect
+                        </button>
+                        <button class="control-btn" id="generate-qr">
+                            <i class="fas fa-qrcode"></i> Generate QR
+                        </button>
+                        <button class="control-btn" id="show-poll-results">
+                            <i class="fas fa-chart-bar"></i> Show Poll Results
+                        </button>
+                        <button class="control-btn" id="reset-question">
+                            <i class="fas fa-redo"></i> Reset Question
+                        </button>
+                        <button class="control-btn" id="toggle-game-screen">
+                            <i class="fas fa-desktop"></i> Open Game Screen
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="admin-question">
+                    <h3>Current Question</h3>
+                    <div id="admin-question-text">Loading question...</div>
+                    
+                    <div class="admin-options" id="admin-options">
+                        <div class="admin-option" data-option="A">
+                            <span class="option-letter">A</span>
+                            <span class="option-text">Loading...</span>
+                        </div>
+                        <div class="admin-option" data-option="B">
+                            <span class="option-letter">B</span>
+                            <span class="option-text">Loading...</span>
+                        </div>
+                        <div class="admin-option" data-option="C">
+                            <span class="option-letter">C</span>
+                            <span class="option-text">Loading...</span>
+                        </div>
+                        <div class="admin-option" data-option="D">
+                            <span class="option-letter">D</span>
+                            <span class="option-text">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-answer">
+                        <p>Correct Answer: <span id="correct-answer">-</span></p>
+                        <p>Selected Answer: <span id="selected-answer">None</span></p>
+                    </div>
+                    
+                    <div id="admin-poll-results" style="display: none;">
+                        <h3>Audience Poll Results</h3>
+                        <canvas id="admin-poll-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-sidebar">
+                <div class="admin-lifelines">
+                    <h3>Lifeline Controls</h3>
+                    <div class="control-buttons">
+                        <button class="control-btn" id="activate-fifty-fifty">
+                            <i class="fas fa-divide"></i> 50:50
+                        </button>
+                        <button class="control-btn" id="activate-swap">
+                            <i class="fas fa-exchange-alt"></i> Swap Question
+                        </button>
+                        <button class="control-btn" id="activate-audience-poll">
+                            <i class="fas fa-users"></i> Audience Poll
+                        </button>
+                        <button class="control-btn" id="activate-phone-friend">
+                            <i class="fas fa-phone"></i> Phone a Friend
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="admin-navigation">
+                    <h3>Question Navigation</h3>
+                    <div class="control-buttons">
+                        <button class="control-btn" id="prev-question">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button class="control-btn" id="next-question">
+                            <i class="fas fa-arrow-right"></i> Next
+                        </button>
+                    </div>
+                    
+                    <div class="question-selector">
+                        <label for="question-select">Jump to Question:</label>
+                        <select id="question-select">
+                            <!-- Will be populated by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="money-tree">
+                    <h3>Prize Money</h3>
+                    <div class="money-levels" id="admin-money-levels">
+                        <!-- Money levels will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="theme-toggle" style="position: fixed; bottom: 20px; right: 20px;">
+        <label for="dark-mode-toggle-admin">Dark Mode</label>
+        <input type="checkbox" id="dark-mode-toggle-admin">
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>

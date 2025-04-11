@@ -1,0 +1,198 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is the capital of France?",
+      "options": {
+        "A": "Berlin",
+        "B": "Madrid",
+        "C": "Paris",
+        "D": "Rome"
+      },
+      "correctAnswer": "C",
+      "amount": 1000
+    },
+    {
+      "id": 2,
+      "question": "Which planet is known as the Red Planet?",
+      "options": {
+        "A": "Earth",
+        "B": "Mars",
+        "C": "Jupiter",
+        "D": "Saturn"
+      },
+      "correctAnswer": "B",
+      "amount": 2000
+    },
+    {
+      "id": 3,
+      "question": "What is the largest ocean on Earth?",
+      "options": {
+        "A": "Atlantic Ocean",
+        "B": "Indian Ocean",
+        "C": "Arctic Ocean",
+        "D": "Pacific Ocean"
+      },
+      "correctAnswer": "D",
+      "amount": 3000
+    },
+    {
+      "id": 4,
+      "question": "Who wrote 'Hamlet'?",
+      "options": {
+        "A": "Charles Dickens",
+        "B": "William Shakespeare",
+        "C": "Leo Tolstoy",
+        "D": "Mark Twain"
+      },
+      "correctAnswer": "B",
+      "amount": 5000
+    },
+    {
+      "id": 5,
+      "question": "What is the chemical symbol for water?",
+      "options": {
+        "A": "O2",
+        "B": "H2O",
+        "C": "CO2",
+        "D": "NaCl"
+      },
+      "correctAnswer": "B",
+      "amount": 10000,
+      "milestone": true
+    },
+    {
+      "id": 6,
+      "question": "What is the tallest mountain in the world?",
+      "options": {
+        "A": "K2",
+        "B": "Kangchenjunga",
+        "C": "Mount Everest",
+        "D": "Makalu"
+      },
+      "correctAnswer": "C",
+      "amount": 20000
+    },
+    {
+      "id": 7,
+      "question": "Who painted the Mona Lisa?",
+      "options": {
+        "A": "Michelangelo",
+        "B": "Raphael",
+        "C": "Leonardo da Vinci",
+        "D": "Donatello"
+      },
+      "correctAnswer": "C",
+      "amount": 40000
+    },
+    {
+      "id": 8,
+      "question": "What is the square root of 144?",
+      "options": {
+        "A": "10",
+        "B": "11",
+        "C": "12",
+        "D": "13"
+      },
+      "correctAnswer": "C",
+      "amount": 80000
+    },
+    {
+      "id": 9,
+      "question": "Which country is the largest by area?",
+      "options": {
+        "A": "China",
+        "B": "USA",
+        "C": "Canada",
+        "D": "Russia"
+      },
+      "correctAnswer": "D",
+      "amount": 160000
+    },
+    {
+      "id": 10,
+      "question": "What is the currency of Japan?",
+      "options": {
+        "A": "Dollar",
+        "B": "Yen",
+        "C": "Euro",
+        "D": "Won"
+      },
+      "correctAnswer": "B",
+      "amount": 320000,
+      "milestone": true
+    },
+    {
+      "id": 11,
+      "question": "Who discovered penicillin?",
+      "options": {
+        "A": "Marie Curie",
+        "B": "Alexander Fleming",
+        "C": "Isaac Newton",
+        "D": "Albert Einstein"
+      },
+      "correctAnswer": "B",
+      "amount": 640000
+    },
+    {
+      "id": 12,
+      "question": "What is the main ingredient in guacamole?",
+      "options": {
+        "A": "Tomato",
+        "B": "Onion",
+        "C": "Avocado",
+        "D": "Lime"
+      },
+      "correctAnswer": "C",
+      "amount": 1250000
+    },
+    {
+      "id": 13,
+      "question": "In which year did the Titanic sink?",
+      "options": {
+        "A": "1905",
+        "B": "1912",
+        "C": "1918",
+        "D": "1923"
+      },
+      "correctAnswer": "B",
+      "amount": 2500000
+    },
+    {
+      "id": 14,
+      "question": "What is the hardest natural substance on Earth?",
+      "options": {
+        "A": "Gold",
+        "B": "Iron",
+        "C": "Diamond",
+        "D": "Platinum"
+      },
+      "correctAnswer": "C",
+      "amount": 5000000
+    },
+    {
+      "id": 15,
+      "question": "Who is the first person to step on the moon?",
+      "options": {
+        "A": "Buzz Aldrin",
+        "B": "Yuri Gagarin",
+        "C": "Michael Collins",
+        "D": "Neil Armstrong"
+      },
+      "correctAnswer": "D",
+      "amount": 10000000,
+      "milestone": true
+    }
+  ],
+  "fffQuestion": {
+    "id": "fff",
+    "question": "Arrange the following Indian cities from North to South:",
+    "options": {
+      "A": "Delhi",
+      "B": "Mumbai",
+      "C": "Chennai",
+      "D": "Kolkata"
+    },
+    "correctOrder": ["A", "D", "B", "C"]
+  }
+}
