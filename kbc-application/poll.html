@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBC - Audience Poll</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="poll-container">
+            <div class="poll-header">
+                <h1>KBC Audience Poll</h1>
+                <p>Help the contestant by voting for the correct answer!</p>
+            </div>
+            
+            <div id="participant-form">
+                <h3>Enter Your Details</h3>
+                <div class="form-group">
+                    <label for="participant-name">Your Name:</label>
+                    <input type="text" id="participant-name" placeholder="Enter your name" required>
+                </div>
+                <button class="control-btn" id="submit-name">
+                    <i class="fas fa-arrow-right"></i> Continue
+                </button>
+            </div>
+            
+            <div id="poll-content" style="display: none;">
+                <div class="timer" id="poll-timer" style="margin: 20px auto;">60</div>
+                
+                <div class="poll-question" id="poll-question">
+                    Loading question...
+                </div>
+                
+                <div class="poll-options" id="poll-options">
+                    <div class="poll-option" data-option="A">
+                        <div class="option-letter">A</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="poll-option" data-option="B">
+                        <div class="option-letter">B</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="poll-option" data-option="C">
+                        <div class="option-letter">C</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="poll-option" data-option="D">
+                        <div class="option-letter">D</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="thank-you" style="display: none;">
+                <h2>Thank You!</h2>
+                <p>Your vote has been recorded.</p>
+                <div class="check-icon">
+                    <i class="fas fa-check-circle" style="font-size: 4rem; color: var(--correct-answer);"></i>
+                </div>
+                <p>The results will be displayed on the main screen shortly.</p>
+            </div>
+            
+            <div id="time-up" style="display: none;">
+                <h2>Time's Up!</h2>
+                <p>The polling period has ended.</p>
+                <div class="timer-icon">
+                    <i class="fas fa-clock" style="font-size: 4rem; color: var(--timer-color);"></i>
+                </div>
+                <p>Thank you for your participation.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="theme-toggle" style="position: fixed; bottom: 20px; right: 20px;">
+        <label for="dark-mode-toggle-poll">Dark Mode</label>
+        <input type="checkbox" id="dark-mode-toggle-poll">
+    </div>
+    
+    <script src="js/poll.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "name": "Participant 1",
+    "progress": {
+      "currentQuestionIndex": 0,
+      "questionsAttempted": [],
+      "lifelinesUsed": {
+        "fiftyFifty": false,
+        "phoneAFriend": false,
+        "audiencePoll": false,
+        "expertAdvice": false
+      },
+      "amountWon": 0,
+      "gameStatus": "ready"
+    }
+  }
+]

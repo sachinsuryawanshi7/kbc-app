@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBC - Mobile Participation</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="poll-container">
+            <div class="poll-header">
+                <h1>KBC Fastest Finger First</h1>
+                <p>Answer correctly and quickly to get a chance to play!</p>
+            </div>
+            
+            <div id="participant-form">
+                <h3>Enter Your Details</h3>
+                <div class="form-group">
+                    <label for="participant-name">Your Name:</label>
+                    <input type="text" id="participant-name" placeholder="Enter your name" required>
+                </div>
+                <button class="control-btn" id="submit-name">
+                    <i class="fas fa-arrow-right"></i> Continue
+                </button>
+            </div>
+            
+            <div id="waiting-screen" style="display: none;">
+                <h2>Waiting for the round to start...</h2>
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 3rem;"></i>
+                </div>
+                <p>Please wait while the host starts the Fastest Finger First round.</p>
+            </div>
+            
+            <div id="question-container" style="display: none;">
+                <div class="timer" id="mobile-timer" style="margin: 20px auto;">60</div>
+                
+                <div class="poll-question" id="mobile-question">
+                    Loading question...
+                </div>
+                
+                <div class="poll-options" id="mobile-options">
+                    <div class="poll-option" data-option="A">
+                        <div class="option-letter">A</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="poll-option" data-option="B">
+                        <div class="option-letter">B</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="poll-option" data-option="C">
+                        <div class="option-letter">C</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="poll-option" data-option="D">
+                        <div class="option-letter">D</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="thank-you" style="display: none;">
+                <h2>Thank You!</h2>
+                <p>Your answer has been recorded.</p>
+                <div class="check-icon">
+                    <i class="fas fa-check-circle" style="font-size: 4rem; color: var(--correct-answer);"></i>
+                </div>
+                <p>Your response time: <span id="response-time">0.00</span> seconds</p>
+                <p>The results will be displayed on the main screen shortly.</p>
+            </div>
+            
+            <div id="time-up" style="display: none;">
+                <h2>Time's Up!</h2>
+                <p>The round has ended.</p>
+                <div class="timer-icon">
+                    <i class="fas fa-clock" style="font-size: 4rem; color: var(--timer-color);"></i>
+                </div>
+                <p>Thank you for your participation.</p>
+            </div>
+            
+            <div id="results-screen" style="display: none;">
+                <h2>Round Results</h2>
+                <div id="result-message"></div>
+                <div id="leaderboard-position"></div>
+                <p>Check the main screen for the complete leaderboard.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="theme-toggle" style="position: fixed; bottom: 20px; right: 20px;">
+        <label for="dark-mode-toggle-mobile">Dark Mode</label>
+        <input type="checkbox" id="dark-mode-toggle-mobile">
+    </div>
+    
+    <script src="js/mobile.js"></script>
+</body>
+</html>

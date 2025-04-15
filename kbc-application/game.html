@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBC - Game Screen</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body class="game-page-body">
+    <div class="container">
+        <div class="game-container">
+            <div class="question-area">
+                <div class="question-header">
+                    <h2>Question <span id="question-number">1</span></h2>
+                    <div class="timer" id="timer">60</div>
+                </div>
+                
+                <div class="question-text" id="question-text">
+                    Loading question...
+                </div>
+                
+                <div class="options-grid" id="options-grid">
+                    <div class="option" data-option="A">
+                        <div class="option-letter">A</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="option" data-option="B">
+                        <div class="option-letter">B</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="option" data-option="C">
+                        <div class="option-letter">C</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                    <div class="option" data-option="D">
+                        <div class="option-letter">D</div>
+                        <div class="option-text">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Audience Poll Modal -->
+                <div id="poll-modal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <span class="close-button" id="close-poll-modal">&times;</span>
+                        <div id="qr-container" class="qr-container">
+                             <h3>Scan QR Code for Audience Poll</h3>
+                             <p>Expires in: <span id="poll-qr-timer">60</span>s</p>
+                             <div id="qr-code" class="qr-code"></div>
+                             <div id="qr-expired-message" style="display: none; color: red; margin-top: 10px;">Poll Expired</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- End Audience Poll Modal -->
+
+                <!-- Game Over Modal -->
+                <div id="game-over-modal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <span class="close-button" id="close-game-over-modal">&times;</span>
+                        <h3 id="game-over-title">Game Over!</h3>
+                        <p id="game-over-message">Congratulations!</p>
+                        <p>You won: <strong id="game-over-amount">₹ 0</strong></p>
+                    </div>
+                </div>
+                <!-- End Game Over Modal -->
+
+                <!-- Poll Results Modal -->
+                <div id="poll-results-modal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <span class="close-button" id="close-poll-results-modal">&times;</span>
+                        <div id="poll-results" class="poll-results"> <!-- Keep existing ID for chart logic -->
+                            <h3>Audience Poll Results</h3>
+                            <canvas id="poll-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <!-- End Poll Results Modal -->
+
+            </div>
+
+            <div class="sidebar">
+                <div class="lifelines">
+                    <h3>Lifelines</h3>
+                    <div class="lifelines-grid">
+                        <div class="lifeline" id="fifty-fifty">
+                            <i class="fas fa-divide"></i>
+                            <div>50:50</div>
+                        </div>
+                        <div class="lifeline" id="swap-question">
+                            <i class="fas fa-exchange-alt"></i>
+                            <div>Swap</div>
+                        </div>
+                        <div class="lifeline" id="audience-poll">
+                            <i class="fas fa-users"></i>
+                            <div>Audience Poll</div>
+                        </div>
+                        <div class="lifeline" id="phone-friend">
+                            <i class="fas fa-phone"></i>
+                            <div>Phone a Friend</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="money-tree">
+                    <h3>Prize Money</h3>
+                    <div class="money-levels" id="money-levels">
+                        <!-- Money levels will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="theme-toggle" style="position: fixed; bottom: 20px; right: 20px;">
+        <label for="dark-mode-toggle-game">Dark Mode</label>
+        <input type="checkbox" id="dark-mode-toggle-game">
+    </div>
+
+    <script src="js/game.js"></script>
+
+    <!-- Audio Elements for Sound Effects -->
+    <audio id="correct-sound" src="audio/correct.mp3" preload="auto"></audio>
+    <audio id="wrong-sound" src="audio/wrong.mp3" preload="auto"></audio>
+    <audio id="clock-sound" src="audio/clock.mp3" preload="auto" loop></audio> <!-- Added clock sound -->
+</body>
+</html>
