@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
             participant: participantName,
             timestamp: Date.now()
         };
+        console.log("Sending poll data:", voteData);
         localStorage.setItem('kbcPollVote', JSON.stringify(voteData));
 
         // Show thank you message
