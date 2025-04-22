@@ -149,8 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
         leaderboardContainer.style.display = 'none'; // Hide leaderboard
         qrContainerEl.style.display = 'none'; // Hide QR once round starts
         
-        // Send command to mobile clients to start
-        sendFFFCommand({ action: 'startRound', question: fffQuestionData });
         startFFFTimer();
     }
 
@@ -184,52 +182,43 @@ document.addEventListener('DOMContentLoaded', () => {
         sendFFFCommand({ action: 'resetRound' }); // Inform mobile clients
     }
 
-    // --- Process FFF Results ---
-    function processFFFResults() {
+    // --- Process FFF Results (Read from file) ---
+    async function processFFFResults() {
         if (!fffQuestionData) return;
         const correctOrderStr = fffQuestionData.correctOrder.join('');
 
-        fffParticipants.forEach(p => {
-            const participantOrderStr = p.answerOrder.join('');
-            p.correct = participantOrderStr === correctOrderStr;
-        });
+        try {
+            const response = await fetch('data/fff_results.json');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const fffResultsData = await response.json();
 
-        // Sort by correctness (correct first) then by time (fastest first)
-        fffParticipants.sort((a, b) => {
-            if (a.correct && !b.correct) return -1;
-            if (!a.correct && b.correct) return 1;
-            // If both correct or both incorrect, sort by time
-            return a.time - b.time;
-        });
+            fffParticipants = fffResultsData.map(p => ({
+                name: p.name,
+                answerOrder: p.answerOrder,
+                time: p.time,
+                correct: false // Will be evaluated later
+            }));
 
-        console.log("Processed FFF Results:", fffParticipants);
-    }
+            fffParticipants.forEach(p => {
+                const participantOrderStr = p.answerOrder.join('');
+                p.correct = participantOrderStr === correctOrderStr;
+            });
 
-    // --- Display Leaderboard ---
-    function displayLeaderboard() {
-        leaderboardBody.innerHTML = ''; // Clear previous entries
-        const top10 = fffParticipants.slice(0, 10);
+            // Sort by correctness (correct first) then by time (fastest first)
+            fffParticipants.sort((a, b) => {
+                if (a.correct && !b.correct) return -1;
+                if (!a.correct && b.correct) return 1;
+                // If both correct or both incorrect, sort by time
+                return a.time - b.time;
+            });
 
-        top10.forEach((p, index) => {
-            const row = leaderboardBody.insertRow();
-            row.insertCell(0).textContent = index + 1; // Rank
-            row.insertCell(1).textContent = p.name;
-            row.insertCell(2).textContent = p.correct ? `${p.time.toFixed(2)}s` : 'Incorrect';
+            console.log("Processed FFF Results:", fffParticipants);
 
-            if (p.correct) {
-                row.style.backgroundColor = 'var(--correct-answer)';
-                row.style.color = 'var(--light-text)';
-            } else {
-                 row.style.opacity = '0.7';
-            }
-            // Highlight the winner (rank 1 and correct)
-            if (index === 0 && p.correct) {
-                row.style.fontWeight = 'bold';
-                row.style.border = '2px solid var(--accent-color)';
-            }
-        });
-
-        leaderboardContainer.style.display = 'block'; // Show the leaderboard
+        } catch (error) {
+            console.error("Error reading or processing FFF results:", error);
+            alert("Could not load FFF results.");
+            fffParticipants = []; // Ensure leaderboard doesn't try to display invalid data
+        }
     }
 
     // --- Send Command to Mobile Clients (via LocalStorage) ---
@@ -238,37 +227,66 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('kbcFFFCommand', JSON.stringify({ ...command, timestamp: Date.now() }));
     }
 
-    // --- Listen for Mobile Client Submissions (via LocalStorage) ---
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'kbcFFFSubmission' && fffRoundActive) {
+    // --- Simulate API call to submit FFF response ---
+    async function submitFFFResponse(submissionData) {
+        const filePath = 'data/fff_results.json';
+        try {
+            // Attempt to read existing data
+            let existingData = [];
             try {
-                const submission = JSON.parse(event.newValue);
-                console.log('FFF Admin received submission:', submission);
-
-                // Avoid duplicate submissions from the same participant
-                if (!fffParticipants.some(p => p.name === submission.name)) {
-                    fffParticipants.push({
-                        name: submission.name,
-                        answerOrder: submission.answerOrder,
-                        time: submission.time,
-                        correct: false // Will be evaluated later
-                    });
+                const response = await fetch(filePath);
+                if (response.ok) {
+                    existingData = await response.json();
+                } else if (response.status === 404) {
+                    // File doesn't exist, so start with an empty array
+                    existingData = [];
                 } else {
-                    console.warn(`Duplicate submission from ${submission.name} ignored.`);
+                    console.error("Error reading FFF data file:", response.status);
+                    // Handle the error appropriately, maybe show a message to the user
+                    return;
                 }
             } catch (e) {
-                console.error("Error parsing FFF submission:", e);
+                console.warn("Could not parse existing FFF data (may be empty or invalid JSON), starting fresh.", e);
+                existingData = []; // Start with a clean slate if parsing fails
             }
+
+            // Add the new submission data
+            existingData.push(submissionData);
+
+            // Write the combined data back to the file
+            const jsonData = JSON.stringify(existingData, null, 2); // Pretty print for readability
+            
+            // Use the write_to_file tool
+            await writeToFile(filePath, jsonData);
+
+        } catch (error) {
+            console.error("Error writing FFF data to file:", error);
+            // Handle the error appropriately, maybe show a message to the user
         }
-    });
+    }
+
+    // --- Helper function to use the write_to_file tool ---
+    async function writeToFile(path, content) {
+        // This function is a placeholder for the actual tool call
+        // In a real environment, you would use the provided tool
+        console.log(`Simulating writing to file: ${path} with content: ${content}`);
+        // Here, I'm using a Promise to simulate the asynchronous nature of the tool
+        return new Promise((resolve, reject) => {
+            // Simulate success after a short delay
+            setTimeout(() => {
+                // In a real implementation, you would check the tool's response for success/failure
+                resolve({ success: true });
+            }, 50);
+        });
+    }
 
     // --- Event Listeners for Admin Controls ---
     generateFffQrBtn.addEventListener('click', generateFFFQRCode);
     startFffBtn.addEventListener('click', startFFFRound);
-    showLeaderboardBtn.addEventListener('click', () => {
+    showLeaderboardBtn.addEventListener('click', async () => {
         // Manually trigger processing and display if round hasn't ended automatically
         if (!fffRoundActive) {
-            processFFFResults();
+            await processFFFResults();
             displayLeaderboard();
         } else {
             alert("Cannot show final leaderboard while round is active.");

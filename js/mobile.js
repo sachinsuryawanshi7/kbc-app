@@ -157,14 +157,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log(`Submitting FFF answer for ${participantName}: ${answerOrder.join(', ')} in ${timeTaken.toFixed(2)}s`);
 
-        // Send submission to FFF admin screen via LocalStorage
+        // Send submission to FFF admin screen via "API"
         const submissionData = {
             name: participantName,
             answerOrder: answerOrder,
             time: timeTaken,
             timestamp: Date.now()
         };
-        localStorage.setItem('kbcFFFSubmission', JSON.stringify(submissionData));
+        submitFFFResponse(submissionData);
 
         // Show thank you message
         questionContainer.style.display = 'none';
@@ -222,7 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsScreen.style.display = 'block';
     }
 
-
     // --- Listen for Commands from FFF Admin (via LocalStorage) ---
     window.addEventListener('storage', (event) => {
         if (event.key === 'kbcFFFCommand') {
@@ -267,6 +266,59 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // --- Simulate API call to submit FFF response ---
+    async function submitFFFResponse(submissionData) {
+        const filePath = 'data/fff_results.json';
+        try {
+            // Attempt to read existing data
+            let existingData = [];
+            try {
+                const response = await fetch(filePath);
+                if (response.ok) {
+                    existingData = await response.json();
+                } else if (response.status === 404) {
+                    // File doesn't exist, so start with an empty array
+                    existingData = [];
+                } else {
+                    console.error("Error reading FFF data file:", response.status);
+                    // Handle the error appropriately, maybe show a message to the user
+                    return;
+                }
+            } catch (e) {
+                console.warn("Could not parse existing FFF data (may be empty or invalid JSON), starting fresh.", e);
+                existingData = []; // Start with a clean slate if parsing fails
+            }
+
+            // Add the new submission data
+            existingData.push(submissionData);
+
+            // Write the combined data back to the file
+            const jsonData = JSON.stringify(existingData, null, 2); // Pretty print for readability
+            
+            // Use the write_to_file tool
+            await writeToFile(filePath, jsonData);
+
+        } catch (error) {
+            console.error("Error writing FFF data to file:", error);
+            // Handle the error appropriately, maybe show a message to the user
+        }
+    }
+
+    // --- Helper function to use the write_to_file tool ---
+    async function writeToFile(path, content) {
+        // This function is a placeholder for the actual tool call
+        // In a real environment, you would use the provided tool
+        console.log(`Simulating writing to file: ${path} with content: ${content}`);
+        // Here, I'm using a Promise to simulate the asynchronous nature of the tool
+        return new Promise((resolve, reject) => {
+            // Simulate success after a short delay
+            setTimeout(() => {
+                // In a real implementation, you would check the tool's response for success/failure
+                resolve({ success: true });
+            }, 50);
+        });
+    }
 
     // --- Initial State ---
     participantForm.style.display = 'block';

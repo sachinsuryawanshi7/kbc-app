@@ -269,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
         adminCurrentQuestion = null;
      }
 
-
     // --- Send Command to Game Screen (Add User ID) ---
     function sendCommandToGame(command) {
         if (!adminCurrentUser && command.action !== 'switchUser') {
@@ -293,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
         //     } catch (e) {
         //         console.error("Error calling function on game window:", e);
         //     }
-        // }
+        }
     }
 
     // --- Admin Money Tree ---
@@ -356,17 +355,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Poll Controls
-    showPollResultsBtn.addEventListener('click', () => {
-        // Display locally & send command to game screen
-         // Ensure pollData is relevant to the *game's* current question, not just admin view
-         const gameCurrentQuestionId = adminCurrentUser?.progress.currentQuestionIndex;
-         if (adminCurrentQuestion && gameCurrentQuestionId === adminCurrentQuestion.id) {
-              console.log("Sending audience poll data:", audiencePollData);
-              displayAdminPollResults(audiencePollData); // Display on admin panel
-              sendCommandToGame({ action: 'showPollResults', data: audiencePollData }); // Send to game screen
-        } else {
-            alert("Poll data might be outdated or not for the user's current question.");
-            // Maybe fetch fresh poll data if using a backend?
+    showPollResultsBtn.addEventListener('click', async () => {
+        // Read poll data from file
+        try {
+            const response = await fetch('data/poll_results.json');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const pollData = await response.json();
+
+            // Process poll data to count votes for each option
+            const voteCounts = { A: 0, B: 0, C: 0, D: 0 };
+            pollData.forEach(vote => {
+                if (vote.questionId === adminCurrentQuestion?.id) {
+                    voteCounts[vote.option] = (voteCounts[vote.option] || 0) + 1;
+                }
+            });
+
+            // Display locally & send command to game screen
+            // Ensure pollData is relevant to the *game's* current question, not just admin view
+            const gameCurrentQuestionId = adminCurrentUser?.progress.currentQuestionIndex;
+            if (adminCurrentQuestion && gameCurrentQuestionId === adminCurrentQuestion.id) {
+                 console.log("Sending audience poll data:", voteCounts);
+                 displayAdminPollResults(voteCounts); // Display on admin panel
+                 sendCommandToGame({ action: 'showPollResults', data: voteCounts }); // Send to game screen
+            } else {
+                alert("Poll data might be outdated or not for the user's current question.");
+            }
+        } catch (error) {
+            console.error("Error reading or processing poll data:", error);
+            alert("Could not load poll results.");
         }
     });
 
@@ -449,9 +465,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
      // --- Display Admin Poll Results ---
-    function displayAdminPollResults(pollData) {
+    function displayAdminPollResults(pollData) { // pollData is now voteCounts
         adminPollResultsEl.style.display = 'block';
         const totalVotes = Object.values(pollData).reduce((sum, votes) => sum + votes, 0);
+        console.log("Total Votes", totalVotes);
         const percentages = {
             A: totalVotes === 0 ? 0 : ((pollData.A / totalVotes) * 100).toFixed(1),
             B: totalVotes === 0 ? 0 : ((pollData.B / totalVotes) * 100).toFixed(1),
@@ -510,115 +527,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Send command to game screen to visually mark the *currently selected* answer as incorrect
         sendCommandToGame({ action: 'markAnswer', result: 'incorrect' });
     });
-
-
-    // --- Listen for Game State Updates (via LocalStorage) ---
-    window.addEventListener('storage', (event) => {
-        // Update from game.js (user progress, lifelines, asked questions)
-        if (event.key === 'kbcGameStateUpdate' && event.newValue) {
-            try {
-                const update = JSON.parse(event.newValue);
-                console.log('Admin received game state update:', update);
-
-                // Update local user data
-                const userIndex = users.findIndex(u => u.id === update.userId);
-                if (userIndex !== -1) {
-                    users[userIndex].progress = update.progress;
-                    // Update global asked IDs set
-                    if (update.askedQuestionIds) {
-                         update.askedQuestionIds.forEach(id => askedQuestionIds.add(id));
-                    }
-
-                    // If the update is for the currently selected user, refresh admin UI
-                    if (adminCurrentUser && adminCurrentUser.id === update.userId) {
-                        adminCurrentUser.progress = update.progress; // Update local state too
-                        updateAdminUIForUser();
-                    }
-                }
-            } catch (e) {
-                 console.error("Error processing game state update:", e);
-            }
-        }
-
-        // Update selected answer display from game.js
-        if (event.key === 'kbcAnswerSelected' && event.newValue) {
-            try {
-                const answerData = JSON.parse(event.newValue);
-                console.log('Admin received selected answer:', answerData);
-                // Check if the update is for the currently selected user in the admin panel
-                if (adminCurrentUser && adminCurrentUser.id === answerData.userId) {
-                    // Update the display regardless of which question admin is viewing
-                    selectedAnswerEl.textContent = answerData.selectedOption || 'None';
-                    // Optionally, ensure the admin view loads the question the user just answered
-                    // loadQuestionForAdminView(answerData.questionId); // Uncomment if you want admin view to auto-sync
-                }
-            } catch (e) {
-                console.error("Error processing selected answer update:", e);
-            }
-        }
-
-
-        // Votes from poll.js
-        if (event.key === 'kbcPollVote' && event.newValue) {
-             try {
-                const voteData = JSON.parse(event.newValue);
-                console.log('Admin received poll vote:', voteData);
-                // Check if the vote is for the question currently displayed in admin (or maybe the user's actual current question?)
-                // Let's tie it to the question the admin is currently viewing, assuming poll was activated for that.
-                if (adminCurrentQuestion && voteData.questionId === adminCurrentQuestion.id) {
-                    const voteOption = voteData.option;
-                    audiencePollData[voteOption] = (audiencePollData[voteOption] || 0) + 1;
-                    // Optionally update admin poll chart in real-time
-                    // displayAdminPollResults(audiencePollData);
-                }
-             } catch(e) {
-                 console.error("Error processing poll vote:", e);
-             }
-        }
-    });
-
-     // --- Display Admin Poll Results ---
-    function displayAdminPollResults(pollData) {
-        adminPollResultsEl.style.display = 'block';
-        const totalVotes = Object.values(pollData).reduce((sum, votes) => sum + votes, 0);
-        const percentages = {
-            A: totalVotes === 0 ? 0 : ((pollData.A / totalVotes) * 100).toFixed(1),
-            B: totalVotes === 0 ? 0 : ((pollData.B / totalVotes) * 100).toFixed(1),
-            C: totalVotes === 0 ? 0 : ((pollData.C / totalVotes) * 100).toFixed(1),
-            D: totalVotes === 0 ? 0 : ((pollData.D / totalVotes) * 100).toFixed(1)
-        };
-
-        const chartData = {
-            labels: ['A', 'B', 'C', 'D'],
-            datasets: [{
-                label: 'Audience Votes (%)',
-                data: [percentages.A, percentages.B, percentages.C, percentages.D],
-                 backgroundColor: [ /* Colors as in game.js */
-                    'rgba(54, 162, 235, 0.6)', 'rgba(255, 99, 132, 0.6)',
-                    'rgba(75, 192, 192, 0.6)', 'rgba(255, 206, 86, 0.6)'
-                ],
-                borderColor: [ /* Border colors as in game.js */
-                    'rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)',
-                    'rgba(75, 192, 192, 1)', 'rgba(255, 206, 86, 1)'
-                ],
-                borderWidth: 1
-            }]
-        };
-
-        if (adminPollChart) {
-            adminPollChart.destroy();
-        }
-
-        adminPollChart = new Chart(adminPollChartCanvas, {
-            type: 'bar',
-            data: chartData,
-            options: { /* Options as in game.js */
-                indexAxis: 'y',
-                scales: { x: { beginAtZero: true, max: 100, ticks: { callback: value => value + "%" } } },
-                plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => ` ${context.raw}%` } } }
-            }
-        });
-    }
 
 
     // --- Initial Load ---

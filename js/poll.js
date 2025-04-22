@@ -137,17 +137,10 @@ document.addEventListener('DOMContentLoaded', () => {
         stopPollTimer();
         const selectedOption = event.currentTarget.dataset.option;
         console.log(`Poll vote: ${selectedOption} by ${participantName}`);
-        console.log("Participant Name",participantName)
+        console.log("Participant Name",participantName);
 
-        // Send vote to admin panel via LocalStorage
-        const voteData = {
-            questionId: currentQuestion.id,
-            option: selectedOption,
-            participant: participantName,
-            timestamp: Date.now()
-        };
-        console.log("Sending poll data:", voteData);
-        localStorage.setItem('kbcPollVote', JSON.stringify(voteData));
+        // Send vote to "API"
+        submitPollResponse(voteData);
 
         // Show thank you message
         pollContent.style.display = 'none';
@@ -176,11 +169,65 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Initial Load ---
-    // Show name form first
+    // --- Simulate API call to submit poll response ---
+    async function submitPollResponse(voteData) {
+        const filePath = 'data/poll_results.json';
+        try {
+            // Attempt to read existing data
+            let existingData = [];
+            try {
+                const response = await fetch(filePath);
+                if (response.ok) {
+                    existingData = await response.json();
+                } else if (response.status === 404) {
+                    // File doesn't exist, so start with an empty array
+                    existingData = [];
+                } else {
+                    console.error("Error reading poll data file:", response.status);
+                    // Handle the error appropriately, maybe show a message to the user
+                    return;
+                }
+            } catch (e) {
+                console.warn("Could not parse existing poll data (may be empty or invalid JSON), starting fresh.", e);
+                existingData = []; // Start with a clean slate if parsing fails
+            }
+
+            // Add the new vote data
+            existingData.push(voteData);
+
+            // Write the combined data back to the file
+            const jsonData = JSON.stringify(existingData, null, 2); // Pretty print for readability
+            
+            // Use the write_to_file tool
+            await writeToFile(filePath, jsonData);
+
+        } catch (error) {
+            console.error("Error writing poll data to file:", error);
+            // Handle the error appropriately, maybe show a message to the user
+        }
+    }
+
+    // --- Helper function to use the write_to_file tool ---
+    async function writeToFile(path, content) {
+        // This function is a placeholder for the actual tool call
+        // In a real environment, you would use the provided tool
+        console.log(`Simulating writing to file: ${path} with content: ${content}`);
+        // Here, I'm using a Promise to simulate the asynchronous nature of the tool
+        return new Promise((resolve, reject) => {
+            // Simulate success after a short delay
+            setTimeout(() => {
+                // In a real implementation, you would check the tool's response for success/failure
+                resolve({ success: true });
+            }, 50);
+        });
+    }
+
+    // --- Initial State ---
     participantForm.style.display = 'block';
-    pollContent.style.display = 'none';
+    waitingScreen.style.display = 'none';
+    questionContainer.style.display = 'none';
     thankYouScreen.style.display = 'none';
     timeUpScreen.style.display = 'none';
+    resultsScreen.style.display = 'none';
 
 });
