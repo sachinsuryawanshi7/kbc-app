@@ -358,11 +358,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Poll Controls
     showPollResultsBtn.addEventListener('click', () => {
         // Display locally & send command to game screen
-        // Ensure pollData is relevant to the *game's* current question, not just admin view
-        const gameCurrentQuestionId = adminCurrentUser?.progress.currentQuestionIndex;
-        if (adminCurrentQuestion && gameCurrentQuestionId === adminCurrentQuestion.id) {
-             displayAdminPollResults(audiencePollData); // Display on admin panel
-             sendCommandToGame({ action: 'showPollResults', data: audiencePollData }); // Send to game screen
+         // Ensure pollData is relevant to the *game's* current question, not just admin view
+         const gameCurrentQuestionId = adminCurrentUser?.progress.currentQuestionIndex;
+         if (adminCurrentQuestion && gameCurrentQuestionId === adminCurrentQuestion.id) {
+              console.log("Sending audience poll data:", audiencePollData);
+              displayAdminPollResults(audiencePollData); // Display on admin panel
+              sendCommandToGame({ action: 'showPollResults', data: audiencePollData }); // Send to game screen
         } else {
             alert("Poll data might be outdated or not for the user's current question.");
             // Maybe fetch fresh poll data if using a backend?

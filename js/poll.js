@@ -137,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stopPollTimer();
         const selectedOption = event.currentTarget.dataset.option;
         console.log(`Poll vote: ${selectedOption} by ${participantName}`);
+        console.log("Participant Name",participantName)
 
         // Send vote to admin panel via LocalStorage
         const voteData = {

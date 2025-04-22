@@ -667,6 +667,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // qrContainerEl.style.display = 'none'; // QR container is inside the other poll modal
         pollModal.style.display = 'none'; // Ensure QR code modal is hidden
         clearInterval(pollQrTimerInterval); // Stop QR timer if results arrive early
+
+        // Calculate total participants
+        const totalParticipants = Object.values(pollData).reduce((sum, votes) => sum + votes, 0);
+        console.log(`Audience Poll: Total participants: ${totalParticipants}`);
         // pollResultsEl.style.display = 'block'; // Don't show the inner div directly
 
         // Show the poll results modal

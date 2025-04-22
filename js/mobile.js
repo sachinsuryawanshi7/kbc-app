@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Add a small delay to allow localStorage to fully update
                 setTimeout(() => {
                     const command = JSON.parse(event.newValue);
-                    console.log(`Mobile received FFF command:`, command);
+                    console.log(`Mobile received FFF command (parsed):`, command);
 
                     if (command.action === 'startRound') {
                         if (!roundActive) { // Prevent starting multiple times
