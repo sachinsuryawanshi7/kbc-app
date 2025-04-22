@@ -194,5 +194,43 @@
       "D": "Kolkata"
     },
     "correctOrder": ["A", "D", "B", "C"]
-  }
+  },
+  "swapQuestions": [
+    {
+      "id": "swap1",
+      "question": "What is the longest river in the world?",
+      "options": {
+        "A": "Amazon River",
+        "B": "Nile River",
+        "C": "Yangtze River",
+        "D": "Mississippi River"
+      },
+      "correctAnswer": "B",
+      "amount": 0 
+    },
+    {
+      "id": "swap2",
+      "question": "Which element has the chemical symbol 'O'?",
+      "options": {
+        "A": "Gold",
+        "B": "Oxygen",
+        "C": "Silver",
+        "D": "Osmium"
+      },
+      "correctAnswer": "B",
+      "amount": 0
+    },
+    {
+      "id": "swap3",
+      "question": "What is the primary language spoken in Brazil?",
+      "options": {
+        "A": "Spanish",
+        "B": "English",
+        "C": "Portuguese",
+        "D": "French"
+      },
+      "correctAnswer": "C",
+      "amount": 0
+    }
+  ]
 }

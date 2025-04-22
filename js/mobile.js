@@ -230,36 +230,38 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!participantName) return; 
             
             try {
-                const command = JSON.parse(event.newValue);
-                console.log(`Mobile received FFF command:`, command);
+                // Add a small delay to allow localStorage to fully update
+                setTimeout(() => {
+                    const command = JSON.parse(event.newValue);
+                    console.log(`Mobile received FFF command:`, command);
 
-                if (command.action === 'startRound') {
-                    if (!roundActive) { // Prevent starting multiple times
-                        fffQuestionData = command.question;
-                        roundActive = true;
+                    if (command.action === 'startRound') {
+                        if (!roundActive) { // Prevent starting multiple times
+                            fffQuestionData = command.question;
+                            roundActive = true;
+                            submissionSent = false;
+                            startTime = performance.now();
+                            displayMobileFFFQuestion();
+                            showQuestionScreen();
+                            startMobileTimer();
+                        }
+                    } else if (command.action === 'endRound') {
+                        if (roundActive && !submissionSent) {
+                            // If round ended before submission
+                            showTimeUpScreen();
+                        }
+                        // Could potentially show final results here based on admin command
+                    } else if (command.action === 'resetRound') {
+                        // Reset the mobile client state
+                        stopMobileTimer();
+                        roundActive = false;
                         submissionSent = false;
-                        startTime = performance.now();
-                        displayMobileFFFQuestion();
-                        showQuestionScreen();
-                        startMobileTimer();
+                        fffQuestionData = null;
+                        answerOrder = [];
+                        showWaitingScreen(); // Go back to waiting
                     }
-                } else if (command.action === 'endRound') {
-                    if (roundActive && !submissionSent) {
-                        // If round ended before submission
-                        showTimeUpScreen();
-                    }
-                    // Could potentially show final results here based on admin command
-                } else if (command.action === 'resetRound') {
-                    // Reset the mobile client state
-                    stopMobileTimer();
-                    roundActive = false;
-                    submissionSent = false;
-                    fffQuestionData = null;
-                    answerOrder = [];
-                    showWaitingScreen(); // Go back to waiting
-                }
-                // Add handling for other commands if needed (e.g., showing results directly)
-
+                    // Add handling for other commands if needed (e.g., showing results directly)
+                }, 100); // 100ms delay
             } catch (e) {
                 console.error("Error parsing FFF command:", e);
             }

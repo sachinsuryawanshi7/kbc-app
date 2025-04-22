@@ -9,29 +9,55 @@ document.addEventListener('DOMContentLoaded', () => {
         fiftyFifty: document.getElementById('fifty-fifty'),
         swapQuestion: document.getElementById('swap-question'),
         audiencePoll: document.getElementById('audience-poll'),
-        phoneFriend: document.getElementById('phone-friend') // Assuming this is the 4th lifeline
+        doubleDip: document.getElementById('double-dip')
+        // Removed phoneFriend reference
     };
-    const qrContainerEl = document.getElementById('qr-container');
+    const qrContainerEl = document.getElementById('qr-container'); // Container *inside* the modal now
     const qrCodeEl = document.getElementById('qr-code');
     const pollResultsEl = document.getElementById('poll-results');
     const pollChartCanvas = document.getElementById('poll-chart');
     const darkModeToggle = document.getElementById('dark-mode-toggle-game');
     const body = document.body;
 
+    // Modal Elements
+    const pollModal = document.getElementById('poll-modal');
+    const closePollModalBtn = document.getElementById('close-poll-modal');
+    const pollQrTimerEl = document.getElementById('poll-qr-timer');
+    const qrExpiredMessageEl = document.getElementById('qr-expired-message');
+
+    // Game Over Modal Elements
+    const gameOverModal = document.getElementById('game-over-modal');
+    const closeGameOverModalBtn = document.getElementById('close-game-over-modal');
+    const gameOverTitleEl = document.getElementById('game-over-title');
+    const gameOverMessageEl = document.getElementById('game-over-message');
+    const gameOverAmountEl = document.getElementById('game-over-amount');
+
+    // Poll Results Modal Elements
+    const pollResultsModal = document.getElementById('poll-results-modal');
+    const closePollResultsModalBtn = document.getElementById('close-poll-results-modal');
+
+
     // Game State
-    let questions = [];
-    let currentQuestionIndex = 0;
-    let currentQuestion = null;
-    let score = 0;
-    let timerInterval = null;
+    let allQuestions = [];
+    let swapQuestionsPool = []; // Added for swap lifeline
+    let users = [];
+    let currentUser = null; // The user currently playing
+    let currentQuestion = null; // The question object currently displayed
+    let askedQuestionIds = new Set(); // IDs of questions asked across ALL users
+    let timerInterval = null; // Main question timer
     let timeLeft = 60;
-    let lifelinesUsed = {
-        fiftyFifty: false,
-        swapQuestion: false,
-        audiencePoll: false,
-        phoneFriend: false
-    };
     let pollChart = null;
+    let pollQrTimerInterval = null; // Separate timer for QR code expiry
+    let pollQrTimeLeft = 60;
+    let selectedOptionElement = null; // Track the clicked option element
+    let lastSelectedOptionKey = null; // Track the key of the clicked option
+    let doubleDipActive = false; // State for Double Dip lifeline
+    let doubleDipAttempt = 1; // Attempt counter for Double Dip lifeline
+
+    // Audio Elements (assuming they exist in HTML or created dynamically)
+    const correctSound = document.getElementById('correct-sound'); // Placeholder ID
+    const wrongSound = document.getElementById('wrong-sound'); // Placeholder ID
+    const clockSound = document.getElementById('clock-sound'); // Added clock sound element
 
     // --- Dark Mode ---
     function applyDarkModePreference() {
@@ -57,52 +83,163 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     applyDarkModePreference(); // Apply on initial load
 
-    // --- Fetch Questions ---
-    async function fetchQuestions() {
+    // --- Fetch Data (Questions and Users) ---
+    async function fetchData() {
         try {
-            const response = await fetch('data/questions.json');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            questions = data.questions;
-            console.log('Questions loaded:', questions);
+            const [questionsResponse, usersResponse] = await Promise.all([
+                fetch('data/questions.json'),
+                fetch('data/users.json') // Fetch user data
+            ]);
+
+            if (!questionsResponse.ok) throw new Error(`HTTP error! status: ${questionsResponse.status}`);
+            if (!usersResponse.ok) throw new Error(`HTTP error! status: ${usersResponse.status}`);
+
+            const questionsData = await questionsResponse.json();
+            const usersData = await usersResponse.json();
+
+            allQuestions = questionsData.questions;
+            swapQuestionsPool = questionsData.swapQuestions || []; // Load swap questions
+            users = usersData;
+            console.log('Questions loaded:', allQuestions);
+            console.log('Swap Questions loaded:', swapQuestionsPool);
+            console.log('Users loaded:', users);
+
+            // Initialize asked questions set from all users' progress
+            users.forEach(user => {
+                user.progress.questionsAttempted.forEach(id => askedQuestionIds.add(id));
+            });
+            console.log('Initial askedQuestionIds:', askedQuestionIds);
+
+            // For now, select the first user or based on a simple mechanism (e.g., localStorage)
+            // TODO: Implement proper user switching mechanism via admin panel
+            selectUser(users[0]?.id || 1); // Select first user by default
+
             initializeGame();
+
         } catch (error) {
-            console.error("Could not fetch questions:", error);
-            questionTextEl.textContent = 'Error loading questions. Please try again later.';
+            console.error("Could not fetch data:", error);
+            questionTextEl.textContent = 'Error loading game data. Please try again later.';
         }
     }
+
+    // --- Select User ---
+    function selectUser(userId) {
+        currentUser = users.find(u => u.id === userId);
+        if (!currentUser) {
+            console.error(`User with ID ${userId} not found.`);
+            // Handle error, maybe default to first user or show message
+            currentUser = users[0];
+        }
+        console.log(`Selected user: ${currentUser.name} (ID: ${currentUser.id})`);
+        // Reset UI elements related to user state if needed
+    }
+
 
     // --- Initialize Game ---
     function initializeGame() {
-        if (questions.length === 0) return;
-        currentQuestionIndex = 0;
-        score = 0;
-        lifelinesUsed = { fiftyFifty: false, swapQuestion: false, audiencePoll: false, phoneFriend: false };
-        updateMoneyTree();
-        updateLifelineUI();
-        loadQuestion(currentQuestionIndex);
-    }
-
-    // --- Load Question ---
-    function loadQuestion(index) {
-        if (index >= questions.length) {
-            endGame("Congratulations! You've answered all questions!");
+        if (!currentUser || allQuestions.length === 0) {
+            console.error("Cannot initialize game: No current user or no questions.");
+            questionTextEl.textContent = 'Game cannot start. User or questions missing.';
             return;
         }
-        currentQuestion = questions[index];
-        questionNumberEl.textContent = currentQuestion.id;
+        // Load state from currentUser
+        console.log(`Initializing game for ${currentUser.name}`);
+        console.log('User progress:', JSON.stringify(currentUser.progress));
+
+        updateMoneyTree(); // Update based on all questions initially
+        updateLifelineUI(); // Update based on currentUser's used lifelines
+        loadNextQuestion(); // Load the next appropriate question for the user
+    }
+
+    // --- Load Next Question ---
+    function loadNextQuestion() {
+        if (!currentUser) return;
+
+        // Find the next question that hasn't been asked globally
+        let nextQuestion = null;
+        let nextQuestionIndexInAll = -1; // Index in the allQuestions array
+
+        // Start searching from the user's last known index + 1, or from 0 if starting
+        const searchStartIndex = currentUser.progress.currentQuestionIndex; // This index relates to the *level*, not the position in allQuestions array
+
+        // Find the question corresponding to the user's current level index
+        const targetQuestionLevel = searchStartIndex + 1;
+        nextQuestion = allQuestions.find(q => q.id === targetQuestionLevel && !askedQuestionIds.has(q.id));
+
+        // If the direct next level question was already asked, find the *next available* unasked question
+        if (!nextQuestion) {
+             for (let i = 0; i < allQuestions.length; i++) {
+                const question = allQuestions[i];
+                // Find the first question with ID >= target level that hasn't been asked
+                if (question.id >= targetQuestionLevel && !askedQuestionIds.has(question.id)) {
+                    nextQuestion = question;
+                    break;
+                }
+            }
+        }
+
+
+        if (!nextQuestion) {
+            // Check if all questions are exhausted or if the user has completed the available ones
+            if (askedQuestionIds.size >= allQuestions.length) {
+                 endGame("Congratulations! You've answered all available questions!", 'won');
+            } else {
+                 // This might happen if lower level questions were skipped/asked by others
+                 // and higher level ones are left. Or simply, no more questions for this user.
+                 // Let's assume completion for now.
+                 endGame(`Congratulations ${currentUser.name}! You've completed the game!`, 'won');
+            }
+            return;
+        }
+
+        currentQuestion = nextQuestion; // Set the globally accessible current question
+        currentUser.progress.currentQuestionIndex = currentQuestion.id; // Update user progress to the *level* (ID) of the current question
+        currentUser.progress.questionsAttempted.push(currentQuestion.id); // Add to user's attempted list
+        askedQuestionIds.add(currentQuestion.id); // Add to globally asked list
+
+        // --- State Update ---
+        // Set the user's target level to the ID of the question being loaded
+        currentUser.progress.currentQuestionIndex = nextQuestion.id;
+        // Mark this question as attempted *by this user* and *globally*
+        currentUser.progress.questionsAttempted.push(nextQuestion.id);
+        askedQuestionIds.add(nextQuestion.id);
+        console.log(`User ${currentUser.name} is now attempting level ${currentUser.progress.currentQuestionIndex} (Question ID: ${nextQuestion.id})`);
+        saveUserState(); // Save the updated state
+
+        // --- Display ---
+        displayQuestion(nextQuestion); // Use the refactored display function
+    }
+
+    // --- Display Question (New Refactored Function) ---
+    function displayQuestion(questionData) {
+        if (!questionData) {
+            console.error("displayQuestion called with null data");
+            return;
+        }
+        currentQuestion = questionData; // Ensure global currentQuestion is set
+        // Keep track of the original level ID even if the question ID is 'swapX'
+        const displayLevelId = currentUser.progress.currentQuestionIndex;
+
+        console.log(`Displaying question for level ${displayLevelId} (Actual Q ID: ${currentQuestion.id}): "${currentQuestion.question}"`);
+
+        questionNumberEl.textContent = displayLevelId; // Display the level number, not potentially 'swapX'
         questionTextEl.textContent = currentQuestion.question;
         optionsGridEl.innerHTML = ''; // Clear previous options
 
-        // Reset styles and visibility
-        qrContainerEl.style.display = 'none';
+        // Reset styles and visibility from potential previous states (like poll)
+        pollModal.style.display = 'none';
         pollResultsEl.style.display = 'none';
         if (pollChart) {
             pollChart.destroy();
             pollChart = null;
         }
+        // Ensure options are visible if hidden by 50:50 previously and clear result styles
+        optionsGridEl.querySelectorAll('.option').forEach(opt => {
+            opt.style.visibility = 'visible';
+            opt.style.cursor = 'pointer';
+            opt.classList.remove('correct', 'wrong', 'disabled', 'wrong-disabled'); // Clear result/state classes including double dip
+        });
+
 
         ['A', 'B', 'C', 'D'].forEach(key => {
             const optionDiv = document.createElement('div');
@@ -119,20 +256,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
             optionDiv.appendChild(letterDiv);
             optionDiv.appendChild(textDiv);
+            // Re-add event listener (disableOptions removes it)
+            optionDiv.removeEventListener('click', handleOptionClick); // Ensure no duplicates
             optionDiv.addEventListener('click', handleOptionClick);
             optionsGridEl.appendChild(optionDiv);
         });
 
-        updateMoneyTree(currentQuestion.id);
+        // Update money tree highlighting the level user is *attempting*
+        // Use currentUser.progress.currentQuestionIndex which represents the *level*
+        updateMoneyTree(currentUser.progress.currentQuestionIndex);
         resetTimer();
-        // Timer should ideally be started by admin action, but we'll start it here for now
-        // startTimer(); 
+        // Timer start should be controlled by admin
     }
+
 
     // --- Timer ---
     function startTimer() {
+        // Play clock sound
+        if (clockSound) {
+            clockSound.currentTime = 0; // Ensure it starts from the beginning
+            clockSound.play().catch(error => console.error("Error playing clock sound:", error)); // Play might require interaction
+        }
+
         clearInterval(timerInterval); // Clear any existing timer
-        timeLeft = 60;
+        // timeLeft = 60; // Removed: Resume from current timeLeft
         timerEl.textContent = timeLeft;
         timerEl.classList.remove('pulse'); // Remove pulse effect if present
 
@@ -144,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
-                handleAnswer(null); // Time's up
+                handleAnswer(null); // Time's up - treated as incorrect
                 timerEl.classList.remove('pulse');
             }
         }, 1000);
@@ -153,6 +300,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function stopTimer() {
         clearInterval(timerInterval);
         timerEl.classList.remove('pulse');
+        // Stop clock sound
+        if (clockSound) {
+            clockSound.pause();
+            clockSound.currentTime = 0; // Reset time for next play
+        }
     }
 
     function resetTimer() {
@@ -165,22 +317,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Handle Answer Selection ---
     function handleOptionClick(event) {
         stopTimer(); // Stop timer once an option is clicked
-        const selectedOptionElement = event.currentTarget;
-        const selectedOptionKey = selectedOptionElement.dataset.option;
+        const clickedOptionElement = event.currentTarget; // Use a different local variable name
+        const selectedOptionKey = clickedOptionElement.dataset.option;
 
-        // Disable further clicks
+        // Disable further clicks (except potentially for Double Dip second chance)
         disableOptions();
 
         // Add visual feedback (e.g., highlight selected) - Optional
-        selectedOptionElement.style.backgroundColor = 'orange'; // Temporary selection indicator
+        clickedOptionElement.style.backgroundColor = 'orange'; // Temporary selection indicator
 
-        // Simulate thinking time before revealing result
-        setTimeout(() => {
-            handleAnswer(selectedOptionKey, selectedOptionElement);
-        }, 2000); // 2 seconds delay
+        // Store the selected element and key using the global variables
+        selectedOptionElement = clickedOptionElement; // Assign the clicked element to the global variable
+        lastSelectedOptionKey = selectedOptionKey; // The key ('A', 'B', 'C', 'D')
+
+        // Send selected answer to admin panel
+        localStorage.setItem('kbcAnswerSelected', JSON.stringify({
+            userId: currentUser.id,
+            questionId: currentQuestion.id,
+            selectedOption: selectedOptionKey
+        }));
+
+        console.log(`User ${currentUser.name} selected option ${selectedOptionKey}. Waiting for admin marking.`);
+        // DO NOT evaluate answer here. Wait for admin command.
     }
 
-    function handleAnswer(selectedOptionKey, selectedElement) {
+    // This function is now primarily for the time-up scenario
+    function handleAnswer(selectedOptionKey, selectedElement) { // selectedElement might be null if time ran out
+        if (!currentUser || !currentQuestion) return; // Ensure game context is valid
+
         const correctAnswer = currentQuestion.correctAnswer;
         const options = optionsGridEl.querySelectorAll('.option');
 
@@ -194,41 +358,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (selectedOptionKey === correctAnswer) {
-            score = currentQuestion.amount;
+            currentUser.progress.amountWon = currentQuestion.amount;
+            currentUser.progress.gameStatus = 'active'; // Still playing
+            console.log(`Correct Answer! User ${currentUser.name} won ${currentUser.progress.amountWon}`);
+            saveUserState();
             // Play correct sound effect (optional)
-            console.log("Correct Answer!");
-            setTimeout(() => {
-                currentQuestionIndex++;
-                loadQuestion(currentQuestionIndex);
-            }, 3000); // Wait 3 seconds before loading next question
-        } else {
-            // Play wrong sound effect (optional)
-            console.log("Wrong Answer!");
+
+            // This part is now handled by the admin 'markAnswer' command response
+            // console.log("Waiting for admin to load next question...");
+            // updateMoneyTree(currentQuestion.id, true); // Update money tree showing correct
+
+        } else { // Handles incorrect answer OR time up (selectedOptionKey is null)
+             if (wrongSound) wrongSound.play(); // Play wrong sound
+            console.log(`Incorrect Answer or Time Up! User ${currentUser.name} selected ${selectedOptionKey || 'nothing'}, correct was ${correctAnswer}`);
             // Find the safe milestone amount
             let finalAmount = 0;
-            for (let i = currentQuestionIndex - 1; i >= 0; i--) {
-                if (questions[i].milestone) {
-                    finalAmount = questions[i].amount;
-                    break;
+            // Iterate backwards through ALL questions up to the current level ID
+            for (let i = allQuestions.length - 1; i >= 0; i--) {
+                const q = allQuestions[i];
+                // Find the highest milestone amount at or below the question *before* the current one
+                if (q.milestone && q.id < currentQuestion.id) {
+                    finalAmount = q.amount;
+                    break; // Found the highest relevant milestone
                 }
             }
-            endGame(`Sorry, that was incorrect. You walk away with ₹${finalAmount.toLocaleString()}.`);
+            // Removed extra brace from line 232
+            currentUser.progress.amountWon = finalAmount; // Set final amount based on milestone
+            endGame(`Sorry, that was incorrect. ${currentUser.name} walks away with ₹${finalAmount.toLocaleString()}.`, 'gameover');
         }
-        updateMoneyTree(currentQuestion.id, selectedOptionKey === correctAnswer);
+        // updateMoneyTree(currentQuestion.id, selectedOptionKey === correctAnswer); // Moved inside correct block
     }
 
     function disableOptions() {
         optionsGridEl.querySelectorAll('.option').forEach(opt => {
-            opt.removeEventListener('click', handleOptionClick);
-            opt.style.cursor = 'not-allowed';
-            // opt.classList.add('disabled'); // Optional: Add disabled class for styling
+            // Don't disable if it's already marked as wrong-disabled from Double Dip
+            if (!opt.classList.contains('wrong-disabled')) {
+                opt.removeEventListener('click', handleOptionClick);
+                opt.style.cursor = 'not-allowed';
+                // opt.classList.add('disabled'); // Optional: Add disabled class for styling
+            }
         });
     }
 
     // --- Money Tree ---
-    function updateMoneyTree(currentLevelId = 0, isCorrect = null) {
+    function updateMoneyTree(currentLevelId = 0, justAnsweredCorrectly = false) {
+        if (!currentUser) return;
         moneyLevelsEl.innerHTML = ''; // Clear previous levels
-        questions.slice().reverse().forEach(level => { // Iterate reversed for correct display order
+
+        // Determine the highest level reached correctly by the user
+        const highestCorrectLevelId = justAnsweredCorrectly
+            ? currentLevelId // If just answered correctly, highlight the current level as passed
+            : (currentUser.progress.questionsAttempted.length > 0
+                ? Math.max(0, ...currentUser.progress.questionsAttempted) // Highest ID they attempted (assuming correct up to previous)
+                : 0); // If no attempts, highest is 0
+
+        allQuestions.slice().reverse().forEach(level => { // Iterate reversed for correct display order
             const levelDiv = document.createElement('div');
             levelDiv.classList.add('money-level');
             levelDiv.dataset.levelId = level.id;
@@ -246,54 +430,87 @@ document.addEventListener('DOMContentLoaded', () => {
             if (level.milestone) {
                 levelDiv.classList.add('milestone');
             }
-            if (level.id === currentLevelId) {
-                levelDiv.classList.add('current');
+
+            // Highlight the level the user is currently attempting
+            if (level.id === currentLevelId && currentUser.progress.gameStatus === 'active') {
+                 levelDiv.classList.add('current');
             }
-            // Highlight past correct answers (optional)
-            if (level.id < currentLevelId) {
-                 levelDiv.style.opacity = '0.7';
-                 levelDiv.style.backgroundColor = 'var(--correct-answer)'; // Or a lighter shade
-                 levelDiv.style.color = 'var(--light-text)';
+
+            // Highlight levels passed correctly
+            // Check if this level's ID is less than or equal to the highest correctly answered level
+            // Note: This logic assumes answering q N means you passed level N.
+            const lastCorrectQuestionId = currentUser.progress.currentQuestionIndex - (justAnsweredCorrectly ? 0 : 1);
+            if (level.id <= lastCorrectQuestionId) {
+                 levelDiv.classList.add('passed'); // Style 'passed' levels (e.g., green background)
             }
+
 
             moneyLevelsEl.appendChild(levelDiv);
         });
     }
 
+    // --- Save User State (In Memory + LocalStorage for Admin) ---
+    function saveUserState() {
+        if (!currentUser) return;
+        console.log(`Saving state for user ${currentUser.id}:`, JSON.stringify(currentUser.progress));
+        // Update the user object in the main 'users' array
+        const userIndex = users.findIndex(u => u.id === currentUser.id);
+        if (userIndex !== -1) {
+            users[userIndex] = currentUser;
+        }
+        // Communicate change to admin panel (basic)
+        localStorage.setItem('kbcGameStateUpdate', JSON.stringify({
+            userId: currentUser.id,
+            progress: currentUser.progress,
+            askedQuestionIds: Array.from(askedQuestionIds) // Send updated asked IDs too
+        }));
+        // TODO: Implement proper saving mechanism (e.g., admin saves to file)
+    }
+
     // --- Lifelines ---
     function updateLifelineUI() {
+        if (!currentUser) return;
+        const userLifelines = currentUser.progress.lifelinesUsed;
         for (const key in lifelines) {
-            if (lifelinesUsed[key]) {
-                lifelines[key].classList.add('used');
-                lifelines[key].removeEventListener('click', handleLifelineClick); // Prevent re-use
+            // Map button ID (e.g., 'fifty-fifty') to progress key (e.g., 'fiftyFifty')
+            const progressKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase()); // fifty-fifty -> fiftyFifty
+            if (lifelines[key]) { // Check if the element exists
+                if (userLifelines[progressKey]) {
+                    lifelines[key].classList.add('used');
+                    lifelines[key].removeEventListener('click', handleLifelineClick); // Prevent re-use
+                } else {
+                    lifelines[key].classList.remove('used');
+                    // Ensure listener is attached only once or managed properly
+                    lifelines[key].removeEventListener('click', handleLifelineClick); // Remove first to avoid duplicates
+                    lifelines[key].addEventListener('click', handleLifelineClick);
+                }
             } else {
-                lifelines[key].classList.remove('used');
-                lifelines[key].addEventListener('click', handleLifelineClick);
+                // console.warn(`Lifeline element with key '${key}' not found in the DOM.`);
             }
         }
     }
 
     function handleLifelineClick(event) {
-        const lifelineId = event.currentTarget.id;
+        if (!currentUser) return;
+        const lifelineButtonId = event.currentTarget.id; // e.g., 'fifty-fifty'
+        const lifelineKey = lifelineButtonId.replace(/-([a-z])/g, (g) => g[1].toUpperCase()); // 'fiftyFifty'
 
-        if (lifelinesUsed[lifelineId]) return; // Already used
+        if (currentUser.progress.lifelinesUsed[lifelineKey]) return; // Already used
 
         // Lifeline logic will be triggered by admin, this is just placeholder
-        console.log(`Lifeline clicked: ${lifelineId}`);
-        // Example: Visually mark as used immediately (though actual use is admin-controlled)
-        // lifelinesUsed[lifelineId] = true;
-        // updateLifelineUI();
+        console.log(`Lifeline clicked: ${lifelineButtonId}`); // Fixed variable name
 
         // Send request to admin panel or use shared state (e.g., LocalStorage/WebSocket)
         // For now, we assume admin triggers the actual effect
-        alert(`Lifeline ${lifelineId} requested. Waiting for admin activation.`);
+        alert(`Lifeline ${lifelineButtonId} requested. Waiting for admin activation.`); // Fixed variable name
     }
 
-    // --- Lifeline Effects (To be triggered by Admin) ---
+    // --- Lifeline Effects (To be triggered by Admin for the CURRENT USER) ---
     window.activateFiftyFifty = () => {
-        if (lifelinesUsed.fiftyFifty || !currentQuestion) return;
-        console.log("Activating 50:50");
-        lifelinesUsed.fiftyFifty = true;
+        if (!currentUser || currentUser.progress.lifelinesUsed.fiftyFifty || !currentQuestion) return;
+        console.log(`Activating 50:50 for user ${currentUser.name}`);
+        currentUser.progress.lifelinesUsed.fiftyFifty = true;
+        saveUserState();
         updateLifelineUI();
 
         const correctAnswer = currentQuestion.correctAnswer;
@@ -312,79 +529,129 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // --- Activate Swap Question (Using swapQuestionsPool) ---
     window.activateSwapQuestion = () => {
-        if (lifelinesUsed.swapQuestion || !currentQuestion) return;
-        console.log("Activating Swap Question");
-        lifelinesUsed.swapQuestion = true;
+        if (!currentUser || currentUser.progress.lifelinesUsed.swapQuestion || !currentQuestion) {
+            console.warn("Swap Question activation failed: Preconditions not met.");
+            return;
+        }
+        if (swapQuestionsPool.length === 0) {
+            console.warn("Swap Question activation failed: No swap questions available.");
+            alert("No swap questions are available. Lifeline cannot be used.");
+            return;
+        }
+
+        console.log(`Activating Swap Question for user ${currentUser.name} (Current Level: ${currentUser.progress.currentQuestionIndex})`);
+
+        // Select a random question from the swap pool
+        // For simplicity, we'll just pick randomly. A more robust system might track used swap questions.
+        const randomIndex = Math.floor(Math.random() * swapQuestionsPool.length);
+        const swapQuestionData = swapQuestionsPool[randomIndex];
+
+        // --- State Update ---
+        currentUser.progress.lifelinesUsed.swapQuestion = true;
+        // The user stays at the same level (currentUser.progress.currentQuestionIndex remains unchanged)
+        // The original question is effectively skipped for this user, but remains available for others unless marked asked elsewhere.
+        saveUserState();
         updateLifelineUI();
 
-        // Find a replacement question (simple approach: find next unused)
-        // A more robust approach would involve a separate pool of swap questions
-        let nextIndex = -1;
-        for (let i = 0; i < questions.length; i++) {
-            // Check if question 'i' is not the current one and hasn't been used as a swap target before
-            if (i !== currentQuestionIndex && !questions[i].swapped) {
-                 // Basic check: ensure it's not the same question ID
-                 if (questions[i].id !== currentQuestion.id) {
-                    nextIndex = i;
-                    break;
-                 }
-            }
-        }
+        // --- Display Update ---
+        console.log(`Swapping current question with Swap Question ID ${swapQuestionData.id}`);
+        // Display the swap question. The global `currentQuestion` will be updated inside displayQuestion.
+        // The amount associated with the swap question itself is ignored; the user plays for the amount of their current level.
+        // We pass the full swap question object to displayQuestion.
+        displayQuestion(swapQuestionData);
+        // Timer should be reset/started by admin after swap if needed.
+        resetTimer(); // Reset timer for the new question
 
-        if (nextIndex !== -1) {
-            // Mark the original question so it's not picked again if swapping happens multiple times
-            questions[currentQuestionIndex].swapped = true; 
-            // Mark the new question as used in swap to avoid loops
-            questions[nextIndex].swapped = true; 
-            
-            currentQuestionIndex = nextIndex; // Update the index
-            loadQuestion(currentQuestionIndex); // Load the new question
-            console.log(`Swapped to question ID: ${questions[nextIndex].id}`);
-        } else {
-            console.log("No suitable swap question found.");
-            // Optionally re-enable the lifeline button or show a message
-            lifelinesUsed.swapQuestion = false; // Allow retry if no swap found?
-            updateLifelineUI();
-            alert("Could not find a question to swap with.");
-        }
+        alert("Question has been swapped!");
     };
+
+
+    // --- Activate Double Dip (2x) Lifeline ---
+    window.activateDoubleDip = () => {
+        if (!currentUser || currentUser.progress.lifelinesUsed.doubleDip || !currentQuestion) {
+             console.warn("Double Dip activation failed: Preconditions not met.");
+             return;
+        }
+        console.log(`Activating Double Dip for user ${currentUser.name}`);
+        currentUser.progress.lifelinesUsed.doubleDip = true;
+        doubleDipActive = true; // Activate the state
+        doubleDipAttempt = 1; // Reset attempt count
+        saveUserState();
+        updateLifelineUI();
+        alert("Double Dip activated! You have two chances to answer this question.");
+        // No visual change needed immediately, logic handled in marking
+    };
+
 
     window.activateAudiencePoll = () => {
-        if (lifelinesUsed.audiencePoll || !currentQuestion) return;
-        console.log("Activating Audience Poll");
-        lifelinesUsed.audiencePoll = true;
+        if (!currentUser || currentUser.progress.lifelinesUsed.audiencePoll || !currentQuestion) return;
+        console.log(`Activating Audience Poll for user ${currentUser.name}`);
+        currentUser.progress.lifelinesUsed.audiencePoll = true;
+        saveUserState();
         updateLifelineUI();
 
-        // 1. Generate QR Code
-        generateQRCode();
-        qrContainerEl.style.display = 'block';
+        // 1. Generate QR Code and display modal
+        generateQRCode(); // Generates QR in the modal's qrCodeEl
+        qrCodeEl.classList.remove('disabled'); // Ensure QR is not disabled initially
+        qrExpiredMessageEl.style.display = 'none'; // Hide expired message
+        pollModal.style.display = 'block'; // Show the modal
         pollResultsEl.style.display = 'none'; // Hide previous results if any
 
-        // 2. Start polling period (Admin might control this duration)
-        console.log("Audience poll started. Waiting for votes...");
-        // 3. After polling (e.g., 60 seconds or admin trigger), show results
-        // This part needs coordination with the admin panel and potentially a backend/WebSocket
-        // For now, simulate receiving results after a delay
-        // setTimeout(showPollResults, 10000); // Simulate showing results after 10s
+        // 2. Start 60-second QR code expiry timer
+        startPollQrTimer();
+
+        // 3. Polling period starts. Results shown by admin command later.
+        console.log("Audience poll QR code displayed. Waiting for votes...");
+        // Note: Actual vote collection happens via poll.html, not directly timed here.
+        // The timer here is just for QR code visibility/validity on the game screen.
     };
-    
-    window.activatePhoneFriend = () => {
-        if (lifelinesUsed.phoneFriend || !currentQuestion) return;
-        console.log("Activating Phone a Friend");
-        lifelinesUsed.phoneFriend = true;
-        updateLifelineUI();
-        // Logic for phone a friend (e.g., start a separate timer, display a message)
-        alert("Phone a Friend activated. You have 30 seconds!");
-        // Start a 30-second timer specific to this lifeline (visual only for now)
-    };
+
+    // --- Phone a Friend function removed ---
+
+
+    // --- Poll QR Code Timer ---
+    function startPollQrTimer() {
+        clearInterval(pollQrTimerInterval); // Clear existing timer
+        pollQrTimeLeft = 60; // Reset timer
+        pollQrTimerEl.textContent = pollQrTimeLeft;
+
+        pollQrTimerInterval = setInterval(() => {
+            pollQrTimeLeft--;
+            pollQrTimerEl.textContent = pollQrTimeLeft;
+
+            if (pollQrTimeLeft <= 0) {
+                expirePollQrCode();
+            }
+        }, 1000);
+    }
+
+    function expirePollQrCode() {
+        clearInterval(pollQrTimerInterval);
+        console.log("Poll QR Code Expired");
+        qrCodeEl.classList.add('disabled'); // Visually disable QR code using CSS class
+        qrExpiredMessageEl.style.display = 'block'; // Show expired message
+
+        // Automatically close the modal after a short delay
+        setTimeout(() => {
+            // Check if modal is still open before closing
+            if (pollModal.style.display === 'block') {
+                pollModal.style.display = 'none';
+            }
+        }, 3000); // Close after 3 seconds
+    }
+
 
     // --- QR Code Generation ---
     function generateQRCode() {
+        if (!currentQuestion || !currentUser) return; // Need context
         qrCodeEl.innerHTML = ''; // Clear previous QR code
-        const pollUrl = `${window.location.origin}/poll.html?questionId=${currentQuestion.id}`; // URL for audience to vote
+        // Construct URL for poll page, passing necessary info
+        const pollUrl = `${window.location.origin}/kbc-app/poll.html?questionId=${currentQuestion.id}&userId=${currentUser.id}`; // Pass user ID too
+        console.log("Generating QR for URL:", pollUrl);
         try {
-            const qr = qrcode(0, 'M'); // type 0, error correction level M
+            const qr = qrcode(0, 'M');
             qr.addData(pollUrl);
             qr.make();
             qrCodeEl.innerHTML = qr.createImgTag(4); // size 4
@@ -395,12 +662,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Audience Poll Chart ---
-    // This function would be called by the admin panel or after a timeout
+    // This function would be called by the admin panel or after a timeout/event
     window.showPollResults = (pollData = null) => {
-        qrContainerEl.style.display = 'none'; // Hide QR code
-        pollResultsEl.style.display = 'block';
+        // qrContainerEl.style.display = 'none'; // QR container is inside the other poll modal
+        pollModal.style.display = 'none'; // Ensure QR code modal is hidden
+        clearInterval(pollQrTimerInterval); // Stop QR timer if results arrive early
+        // pollResultsEl.style.display = 'block'; // Don't show the inner div directly
 
-        // Simulate poll data if not provided
+        // Show the poll results modal
+        pollResultsModal.style.display = 'block';
+
+        // Simulate poll data if not provided (keep this for testing)
         if (!pollData) {
             pollData = {
                 A: Math.floor(Math.random() * 50),
@@ -479,63 +751,259 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- End Game ---
-    function endGame(message) {
+    function endGame(message, status) { // status: 'won', 'quit', 'gameover'
         stopTimer();
-        questionTextEl.textContent = message;
-        optionsGridEl.innerHTML = ''; // Clear options
-        // Maybe show a final score or restart button
+        let finalAmount = 0;
+        if (currentUser) {
+            finalAmount = currentUser.progress.amountWon; // Amount is already calculated before calling endGame
+            currentUser.progress.gameStatus = status;
+            saveUserState(); // Save final status and amount
+            console.log(`Game ended for user ${currentUser.name}. Status: ${status}, Final Amount: ${finalAmount}`);
+        }
+
+        // Clear main game area
+        questionTextEl.textContent = '';
+        optionsGridEl.innerHTML = '';
+        timerEl.style.display = 'none'; // Hide timer
+
+        // Populate and show the Game Over modal
+        gameOverTitleEl.textContent = (status === 'won') ? "Congratulations!" : "Game Over!";
+        gameOverMessageEl.textContent = message; // Use the message passed in
+        gameOverAmountEl.textContent = `₹ ${finalAmount.toLocaleString()}`;
+        gameOverModal.style.display = 'block';
     }
+
+     // --- Function to manually quit game (called by admin) ---
+     window.quitGame = () => {
+        if (!currentUser || !currentQuestion) return;
+        stopTimer();
+        // Amount won is the amount for the *last correctly answered* question's level
+        let finalAmount = 0;
+        const lastCorrectLevelId = currentUser.progress.currentQuestionIndex - 1; // ID of the level before the current one
+        const lastCorrectQuestion = allQuestions.find(q => q.id === lastCorrectLevelId);
+        if (lastCorrectQuestion) {
+            finalAmount = lastCorrectQuestion.amount;
+        }
+        // If they quit before answering Q1 correctly, amount is 0.
+        currentUser.progress.amountWon = finalAmount;
+        endGame(`${currentUser.name} has quit the game, winning ₹${finalAmount.toLocaleString()}.`, 'quit');
+     };
+
 
     // --- Communication with Admin (Placeholder using LocalStorage) ---
-    // This is a basic way to communicate state. WebSockets would be better.
-    function updateAdminState() {
-        const state = {
-            currentQuestionIndex: currentQuestionIndex,
-            score: score,
-            lifelinesUsed: lifelinesUsed,
-            timeLeft: timeLeft,
-            // Add other relevant state info
-        };
-        localStorage.setItem('kbcGameState', JSON.stringify(state));
-    }
-
     // Listen for commands from Admin via LocalStorage (basic example)
     window.addEventListener('storage', (event) => {
-        if (event.key === 'kbcAdminCommand') {
-            const command = JSON.parse(event.newValue);
-            console.log('Received command from admin:', command);
+        if (event.key === 'kbcAdminCommand' && event.newValue) {
+             try {
+                const command = JSON.parse(event.newValue);
+                console.log('Received command from admin:', command);
 
-            if (command.action === 'startTimer') startTimer();
-            if (command.action === 'stopTimer') stopTimer();
-            if (command.action === 'activateFiftyFifty') window.activateFiftyFifty();
-            if (command.action === 'activateSwapQuestion') window.activateSwapQuestion();
-            if (command.action === 'activateAudiencePoll') window.activateAudiencePoll();
-            if (command.action === 'activatePhoneFriend') window.activatePhoneFriend();
-            if (command.action === 'showPollResults') window.showPollResults(command.data);
-            if (command.action === 'loadQuestion') {
-                 currentQuestionIndex = command.index;
-                 loadQuestion(currentQuestionIndex);
+                // Ensure command is for the current user if applicable
+                if (command.userId && currentUser && command.userId !== currentUser.id) {
+                    console.log(`Command ignored: User ID mismatch (Command for ${command.userId}, Current is ${currentUser.id})`);
+                    return;
+                }
+
+                switch (command.action) {
+                    case 'startTimer': startTimer(); break;
+                    case 'stopTimer': stopTimer(); break;
+                    case 'activateFiftyFifty': window.activateFiftyFifty(); break;
+                    case 'activateSwapQuestion': window.activateSwapQuestion(); break;
+                    case 'activateAudiencePoll': window.activateAudiencePoll(); break;
+                    // Phone Friend command removed
+                    case 'activateDoubleDip': window.activateDoubleDip(); break;
+                    case 'showPollResults': window.showPollResults(command.data); break;
+                    case 'loadNextQuestion': loadNextQuestion(); break; // Admin triggers next question
+                    case 'quitGame': window.quitGame(); break; // Admin triggers quit
+                    case 'switchUser':
+                        selectUser(command.userId);
+                        initializeGame();
+                        break;
+                    case 'markAnswer': // New command handler
+                        handleAdminMarking(command.result); // 'correct' or 'incorrect'
+                        break;
+                    default:
+                        console.warn(`Unknown admin command: ${command.action}`);
+                }
+            } catch (e) {
+                console.error("Error processing admin command:", e);
             }
-            if (command.action === 'markCorrect') {
-                 // Find the selected option visually (if needed) or just process
-                 handleAnswer(currentQuestion.correctAnswer);
-            }
-             if (command.action === 'markIncorrect') {
-                 // Need to know which option was selected by player
-                 // This requires player interaction first, or admin forcing an outcome
-                 // For now, assume player already selected, admin confirms wrong
-                 const playerSelectedOption = prompt("Admin: Enter the option player selected (A/B/C/D):"); // Very basic
-                 if (playerSelectedOption && playerSelectedOption !== currentQuestion.correctAnswer) {
-                    handleAnswer(playerSelectedOption);
-                 } else {
-                    alert("Invalid input or player selected correctly.");
-                 }
-            }
-            // Add more command handlers as needed
         }
     });
 
+    // --- Modal Close Button ---
+    if (closePollModalBtn) {
+        closePollModalBtn.addEventListener('click', () => {
+            pollModal.style.display = 'none';
+            clearInterval(pollQrTimerInterval); // Stop timer if closed manually
+        });
+    }
+
+    // Optional: Close modal if clicking outside the content
+    window.addEventListener('click', (event) => {
+        if (event.target === pollModal) {
+            pollModal.style.display = 'none';
+            clearInterval(pollQrTimerInterval); // Stop timer if closed manually
+        }
+    });
+
+    // --- Poll Results Modal Close Button ---
+    if (closePollResultsModalBtn) {
+        closePollResultsModalBtn.addEventListener('click', () => {
+            pollResultsModal.style.display = 'none';
+        });
+    }
+
+    // --- Game Over Modal Close Button ---
+    if (closeGameOverModalBtn) {
+        closeGameOverModalBtn.addEventListener('click', () => {
+            gameOverModal.style.display = 'none';
+            window.close(); // Close the game window
+        });
+    }
+
+
+    // --- Handle Admin Marking ---
+    function handleAdminMarking(result) { // result is 'correct' or 'incorrect'
+        if (!currentUser || !currentQuestion || !selectedOptionElement || !lastSelectedOptionKey) {
+            console.error("Cannot mark answer: Missing context (user, question, or selection).");
+            return;
+        }
+
+        const correctAnswerKey = currentQuestion.correctAnswer;
+        const isActuallyCorrect = (lastSelectedOptionKey === correctAnswerKey);
+
+        console.log(`Admin marked answer as: ${result}. Actual correctness: ${isActuallyCorrect}`);
+
+        // Reveal the actual correct answer first
+        const correctOptionElement = optionsGridEl.querySelector(`.option[data-option="${correctAnswerKey}"]`);
+        if (correctOptionElement) {
+            correctOptionElement.classList.add('correct'); // Always show the right one
+        }
+
+        // Apply style based on admin's marking *to the selected option*
+        // Remove previous marking classes first
+        selectedOptionElement.classList.remove('correct', 'wrong');
+
+        if (result === 'correct') {
+            selectedOptionElement.classList.add('correct');
+            if (correctSound) correctSound.play();
+        } else { // result === 'incorrect'
+            selectedOptionElement.classList.add('wrong');
+            // Play wrong sound only if it's the final incorrect answer (not first DD attempt)
+            // The sound logic is moved down to the actual outcome determination.
+        }
+
+        // Ensure the *actual* correct answer is always highlighted green, regardless of admin marking
+        if (correctOptionElement) {
+             correctOptionElement.classList.remove('wrong'); // Remove potential wrong marking if admin misclicked
+             correctOptionElement.classList.add('correct'); // Ensure correct is always green
+        }
+
+
+        // Update game state based on *actual* correctness, considering Double Dip
+        if (isActuallyCorrect) {
+             // Correct Answer
+            console.log(`Marked Correct! User ${currentUser.name} answered correctly.`);
+            // Assign amount based on the *level*, not the potentially swapped question's amount
+            const currentLevelData = allQuestions.find(q => q.id === currentUser.progress.currentQuestionIndex);
+            currentUser.progress.amountWon = currentLevelData ? currentLevelData.amount : 0; // Fallback to 0 if level data not found
+            currentUser.progress.gameStatus = 'active'; // Still playing
+            saveUserState();
+            updateMoneyTree(currentUser.progress.currentQuestionIndex, true); // Update money tree showing correct level passed
+            console.log(`User ${currentUser.name} won ${currentUser.progress.amountWon}. Waiting for admin to load next question.`);
+            disableOptions(); // Disable options after correct answer
+
+            // Reset Double Dip state
+            doubleDipActive = false;
+            doubleDipAttempt = 1;
+
+        } else { // Incorrect Answer
+            if (doubleDipActive && doubleDipAttempt === 1) {
+                // Double Dip: First incorrect attempt
+                console.log("Double Dip: First attempt incorrect. Allowing second chance.");
+                if (wrongSound) wrongSound.play(); // Play wrong sound on first incorrect attempt
+                doubleDipAttempt = 2;
+
+                // Visually mark the *first* wrong option chosen as incorrect (red) and disable it
+                if (selectedOptionElement) {
+                    selectedOptionElement.classList.remove('correct'); // Ensure it's not marked correct
+                    selectedOptionElement.classList.add('wrong'); // Explicitly add 'wrong' class for red color
+                    selectedOptionElement.classList.add('wrong-disabled'); // Add class for potential specific styling/logic
+                    selectedOptionElement.style.cursor = 'default';
+                    selectedOptionElement.removeEventListener('click', handleOptionClick);
+                }
+
+                // Re-enable *other* clickable options for the second attempt
+                optionsGridEl.querySelectorAll('.option').forEach(opt => {
+                    // Re-enable if it's not the one just chosen AND not hidden by 50:50 AND not already disabled by DD
+                    if (opt !== selectedOptionElement && opt.style.visibility !== 'hidden' && !opt.classList.contains('wrong-disabled')) {
+                        opt.addEventListener('click', handleOptionClick);
+                        opt.style.cursor = 'pointer';
+                        opt.style.backgroundColor = ''; // Reset selection highlight if any
+                        opt.classList.remove('correct', 'wrong'); // Clear previous markings if any
+                    }
+                });
+
+                alert("That was incorrect. You have one more chance with Double Dip!");
+                // Reset selection tracking for the second attempt
+                selectedOptionElement = null;
+                lastSelectedOptionKey = null;
+                // DO NOT end the game or fully disable options yet
+
+            } else {
+                // Double Dip: Second incorrect attempt OR Normal incorrect answer
+                if (wrongSound) wrongSound.play(); // Play wrong sound on final incorrect answer
+
+                // Mark the second incorrect choice (or the only incorrect choice if not DD)
+                if (selectedOptionElement) {
+                     selectedOptionElement.classList.remove('correct');
+                     selectedOptionElement.classList.add('wrong');
+                }
+
+                // Ensure the actual correct answer is marked green
+                if (correctOptionElement) {
+                    correctOptionElement.classList.remove('wrong');
+                    correctOptionElement.classList.add('correct');
+                }
+
+                disableOptions(); // Disable all options now
+
+                if (doubleDipActive) {
+                    console.log("Double Dip: Second attempt incorrect. Game Over.");
+                } else {
+                    console.log("Incorrect answer. Game Over.");
+                }
+
+                // Find the safe milestone amount based on the current level index
+                let finalAmount = 0;
+                const levelBeforeCurrent = currentUser.progress.currentQuestionIndex - 1;
+                for (let i = allQuestions.length - 1; i >= 0; i--) {
+                    const q = allQuestions[i];
+                    // Find highest milestone at or below the level *before* the current one
+                    if (q.milestone && q.id <= levelBeforeCurrent) {
+                        finalAmount = q.amount;
+                        break;
+                    }
+                }
+                currentUser.progress.amountWon = finalAmount;
+                updateMoneyTree(currentUser.progress.currentQuestionIndex, false); // Update money tree showing incorrect/current level
+                endGame(`Sorry, that was incorrect. ${currentUser.name} walks away with ₹${finalAmount.toLocaleString()}.`, 'gameover');
+
+                // Reset Double Dip state
+                doubleDipActive = false;
+                doubleDipAttempt = 1;
+                // Reset selection tracking
+                selectedOptionElement = null;
+                lastSelectedOptionKey = null;
+            }
+        }
+    }
+
+
+
+
     // --- Initial Load ---
-    fetchQuestions();
+    fetchData(); // Fetch both questions and users
 
 });

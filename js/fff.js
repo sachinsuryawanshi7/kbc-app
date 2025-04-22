@@ -55,6 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
             fffQuestionData = data.fffQuestion;
             console.log('FFF Question loaded:', fffQuestionData);
             displayFFFQuestion(); // Display question text and options on admin/main FFF screen
+            console.log("Sending FFF command with data:", fffQuestionData);
+            sendFFFCommand({ action: 'startRound', question: fffQuestionData });
         } catch (error) {
             console.error("Could not fetch FFF question:", error);
             fffQuestionEl.textContent = 'Error loading FFF question.';
@@ -92,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateFFFQRCode() {
         fffQrCodeEl.innerHTML = ''; // Clear previous QR code
         // URL points to the mobile participation page
-        const mobileUrl = `${window.location.origin}/mobile.html?round=fff`; 
+        const mobileUrl = `${window.location.origin}/kbc-app/mobile.html?round=fff`;
+        console.log("Mobile URL for QR code:", mobileUrl);
         try {
             const qr = qrcode(0, 'M');
             qr.addData(mobileUrl);

@@ -8,7 +8,7 @@
     --background-color: #ecf0f1;
     --card-bg: #fff;
     --correct-answer: #2ecc71;
-    --wrong-answer: #e74c3c;
+    --wrong-answer: #3ce775;
     --lifeline-active: #f39c12;
     --lifeline-used: #95a5a6;
     --timer-color: #e67e22;
@@ -45,6 +45,11 @@ body {
     color: var(--text-color);
     line-height: 1.6;
     transition: var(--transition);
+}
+
+/* Styles specific to the game page body */
+.game-page-body {
+    overflow: hidden; /* Prevent scrolling on the entire page */
 }
 
 .container {
@@ -150,9 +155,12 @@ footer {
 /* Game Screen Styles */
 .game-container {
     display: grid;
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 3fr 1fr; /* Keep the column layout */
     gap: 20px;
-    height: calc(100vh - 100px);
+    height: 100vh; /* Force container to fill viewport height */
+    padding-top: 20px; /* Add some padding */
+    padding-bottom: 20px;
+    box-sizing: border-box; /* Ensure padding is included in height */
 }
 
 .question-area {
@@ -188,9 +196,9 @@ footer {
 
 .question-text {
     font-size: 1.5rem;
-    margin-bottom: 30px;
+    margin-bottom: 20px; /* Reduced margin */
     text-align: center;
-    flex-grow: 1;
+    /* flex-grow: 1; Removed to prevent excessive stretching */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -244,6 +252,16 @@ footer {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+/* Specific style for the first wrong answer during Double Dip */
+.option.wrong.wrong-disabled {
+    background-color: var(--wrong-answer); /* Keep it red */
+    opacity: 0.6; /* Make it look disabled */
+    cursor: not-allowed;
+    /* Optional: Add a line-through effect */
+    /* text-decoration: line-through; */
+}
+
 
 .sidebar {
     display: flex;
@@ -300,7 +318,9 @@ footer {
     padding: 20px;
     box-shadow: var(--box-shadow);
     flex-grow: 1;
-    overflow-y: auto;
+    /* overflow-y: auto; */ /* Remove explicit scroll */
+    display: flex; /* Add flex display to manage children */
+    flex-direction: column; /* Stack children vertically */
 }
 
 .money-tree h3 {
@@ -635,4 +655,66 @@ footer {
 
 .slide-in {
     animation: slideIn 0.5s ease-out;
+}
+
+/* Modal Styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 30px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+    max-width: 500px; /* Maximum width */
+    border-radius: 10px;
+    box-shadow: var(--box-shadow);
+    position: relative;
+    text-align: center;
+}
+
+.close-button {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: var(--text-color);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Style for disabled QR code */
+.qr-code.disabled {
+    opacity: 0.3;
+    pointer-events: none; /* Prevent interaction */
+    position: relative; /* Needed for overlay */
+}
+
+.qr-code.disabled::after {
+    content: 'Expired';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(128, 128, 128, 0.7);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 1.2rem;
 }
