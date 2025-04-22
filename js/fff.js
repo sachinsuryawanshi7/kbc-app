@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateFFFQRCode() {
         fffQrCodeEl.innerHTML = ''; // Clear previous QR code
         // URL points to the mobile participation page
-        const mobileUrl = `${window.location.origin}/mobile.html?round=fff`; 
+        const mobileUrl = `${window.location.origin}/kbc-app/mobile.html?round=fff`;
         try {
             const qr = qrcode(0, 'M');
             qr.addData(mobileUrl);
