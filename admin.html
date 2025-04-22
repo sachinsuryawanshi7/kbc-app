@@ -11,14 +11,25 @@
 <body>
     <div class="container">
         <h1>KBC Admin Panel</h1>
+
+        <!-- User Selection -->
+        <div class="admin-user-selection" style="margin-bottom: 20px; background-color: var(--card-bg); padding: 15px; border-radius: 10px; box-shadow: var(--box-shadow);">
+            <label for="user-select" style="margin-right: 10px; font-weight: bold;">Active Participant:</label>
+            <select id="user-select" style="padding: 8px; border-radius: 5px;">
+                <!-- Options populated by JS -->
+                <option value="">Loading Users...</option>
+            </select>
+            <span id="user-status" style="margin-left: 20px; font-style: italic;">Status: -</span>
+        </div>
         
         <div class="admin-container">
             <div class="admin-main">
                 <div class="admin-controls">
-                    <h3>Game Controls</h3>
+                    <h3>Game Controls (for Active Participant)</h3>
                     <div class="control-buttons">
-                        <button class="control-btn" id="start-question">
-                            <i class="fas fa-play"></i> Start Question
+                        <!-- Removed Start Question, Mark Correct/Incorrect, Generate QR, Reset Question -->
+                        <button class="control-btn" id="load-next-question">
+                            <i class="fas fa-arrow-right"></i> Load Next Question
                         </button>
                         <button class="control-btn" id="start-timer">
                             <i class="fas fa-clock"></i> Start Timer
@@ -26,20 +37,11 @@
                         <button class="control-btn" id="stop-timer">
                             <i class="fas fa-stop"></i> Stop Timer
                         </button>
-                        <button class="control-btn" id="mark-correct">
-                            <i class="fas fa-check"></i> Mark Correct
-                        </button>
-                        <button class="control-btn" id="mark-incorrect">
-                            <i class="fas fa-times"></i> Mark Incorrect
-                        </button>
-                        <button class="control-btn" id="generate-qr">
-                            <i class="fas fa-qrcode"></i> Generate QR
+                         <button class="control-btn" id="quit-game" style="background-color: var(--accent-color);">
+                            <i class="fas fa-sign-out-alt"></i> Quit Game for User
                         </button>
                         <button class="control-btn" id="show-poll-results">
                             <i class="fas fa-chart-bar"></i> Show Poll Results
-                        </button>
-                        <button class="control-btn" id="reset-question">
-                            <i class="fas fa-redo"></i> Reset Question
                         </button>
                         <button class="control-btn" id="toggle-game-screen">
                             <i class="fas fa-desktop"></i> Open Game Screen
@@ -73,8 +75,16 @@
                     <div class="admin-answer">
                         <p>Correct Answer: <span id="correct-answer">-</span></p>
                         <p>Selected Answer: <span id="selected-answer">None</span></p>
+                        <div class="answer-marking-controls" style="margin-top: 10px;">
+                             <button class="control-btn correct-btn" id="mark-correct">
+                                <i class="fas fa-check"></i> Mark Correct
+                            </button>
+                            <button class="control-btn incorrect-btn" id="mark-incorrect">
+                                <i class="fas fa-times"></i> Mark Incorrect
+                            </button>
+                        </div>
                     </div>
-                    
+
                     <div id="admin-poll-results" style="display: none;">
                         <h3>Audience Poll Results</h3>
                         <canvas id="admin-poll-chart"></canvas>
@@ -84,39 +94,34 @@
             
             <div class="admin-sidebar">
                 <div class="admin-lifelines">
-                    <h3>Lifeline Controls</h3>
-                    <div class="control-buttons">
-                        <button class="control-btn" id="activate-fifty-fifty">
+                    <h3>Lifeline Controls (for Active Participant)</h3>
+                    <div class="control-buttons lifeline-controls"> <!-- Added class for easier selection -->
+                        <button class="control-btn lifeline-btn" id="activate-fifty-fifty" data-lifeline="fiftyFifty">
                             <i class="fas fa-divide"></i> 50:50
                         </button>
-                        <button class="control-btn" id="activate-swap">
+                        <button class="control-btn lifeline-btn" id="activate-swap" data-lifeline="swapQuestion">
                             <i class="fas fa-exchange-alt"></i> Swap Question
                         </button>
-                        <button class="control-btn" id="activate-audience-poll">
+                        <button class="control-btn lifeline-btn" id="activate-audience-poll" data-lifeline="audiencePoll">
                             <i class="fas fa-users"></i> Audience Poll
                         </button>
-                        <button class="control-btn" id="activate-phone-friend">
-                            <i class="fas fa-phone"></i> Phone a Friend
+                        <button class="control-btn lifeline-btn" id="activate-double-dip" data-lifeline="doubleDip">
+                            <i class="fas fa-redo-alt"></i> Double Dip
                         </button>
+                        <!-- Phone a Friend button removed -->
                     </div>
                 </div>
-                
-                <div class="admin-navigation">
-                    <h3>Question Navigation</h3>
-                    <div class="control-buttons">
-                        <button class="control-btn" id="prev-question">
-                            <i class="fas fa-arrow-left"></i> Previous
-                        </button>
-                        <button class="control-btn" id="next-question">
-                            <i class="fas fa-arrow-right"></i> Next
-                        </button>
-                    </div>
-                    
-                    <div class="question-selector">
-                        <label for="question-select">Jump to Question:</label>
-                        <select id="question-select">
-                            <!-- Will be populated by JavaScript -->
+                <!-- Removed Question Navigation section -->
+                <!-- <div class="admin-navigation"> ... </div> -->
+
+                <div class="admin-info"> <!-- Renamed from admin-navigation for clarity -->
+                    <h3>Game Info</h3>
+                     <div class="question-viewer"> <!-- Changed from selector -->
+                        <label for="question-view-select">View Question Details:</label>
+                        <select id="question-view-select">
+                            <!-- Will be populated by JS for viewing, not navigation -->
                         </select>
+                        <button class="control-btn" id="view-question-details" style="margin-top: 5px;">View</button>
                     </div>
                 </div>
                 
